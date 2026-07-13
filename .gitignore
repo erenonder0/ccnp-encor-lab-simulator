@@ -1,8 +1,0 @@
-node_modules/
-dist/
-work/
-data/progress.json
-*.log
-
-# Local Claude Code settings
-.claude/settings.local.json
