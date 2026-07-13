@@ -6,6 +6,3 @@ data/progress.json
 
 # Local Claude Code settings
 .claude/settings.local.json
-
-# Kaynak tarama dökümanı (40 MB) — uygulamayı çalıştırmak için gerekli değil
-input/
