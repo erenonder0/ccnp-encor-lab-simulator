@@ -1,0 +1,11 @@
+node_modules/
+dist/
+work/
+data/progress.json
+*.log
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Kaynak tarama dökümanı (40 MB) — uygulamayı çalıştırmak için gerekli değil
+input/

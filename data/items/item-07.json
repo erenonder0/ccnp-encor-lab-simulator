@@ -1,0 +1,84 @@
+{
+  "id": 7,
+  "source_pages": [13, 14],
+  "title": "OSPF: R20 Process 20, Router-ID Loopback0, Interface-based Areas, /18 Summary (Area 40)",
+  "topics": ["ospf"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "OSPF is preconfigured on all devices except R20. Configure R20 to complete these tasks.",
+    "Task 1: Configure OSPF according to the topology using these requirements: (1) Use Process ID 20. (2) Use Loopback0 for the Router ID. (3) Advertise all networks into OSPF — do NOT use network statements under the OSPF process to accomplish this task.",
+    "Task 2: Configure a /18 summary route for Area 40."
+  ],
+  "topology_image": "/assets/items/item-07/topology.png",
+  "device_table": [
+    { "device": "R20", "interface": "e0/0 (to R10)", "ip": "10.10.20.20" },
+    { "device": "R20", "interface": "e0/1 (to R30)", "ip": "10.20.30.20" },
+    { "device": "R20", "interface": "e0/2 (to R40, Area 40)", "ip": "10.40.50.20" },
+    { "device": "R20", "interface": "Loopback0", "ip": "10.0.1.20" }
+  ],
+  "devices": [
+    {
+      "name": "R20",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Loopback0"],
+      "preconfig": [
+        "hostname R20",
+        "interface Loopback0",
+        " ip address 10.0.1.20 255.255.255.255",
+        "interface Ethernet0/0",
+        " ip address 10.10.20.20 255.255.255.0",
+        "interface Ethernet0/1",
+        " ip address 10.20.30.20 255.255.255.0",
+        "interface Ethernet0/2",
+        " ip address 10.40.50.20 255.255.255.0"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R20",
+        "points": 6,
+        "required": [
+          { "path": ["router ospf 20"], "line": "router-id 10.0.1.20" },
+          { "path": ["interface Loopback0"], "line": "ip ospf 20 area 0" },
+          { "path": ["interface Ethernet0/0"], "line": "ip ospf 20 area 0" },
+          { "path": ["interface Ethernet0/1"], "line": "ip ospf 20 area 0" },
+          { "path": ["interface Ethernet0/2"], "line": "ip ospf 20 area 40" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R20",
+        "points": 4,
+        "required": [
+          { "path": ["router ospf 20"], "line": "area 40 range 10.40.0.0 255.255.192.0" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R20$)" },
+      { "device": "*", "regex": "^enable (secret|password)" },
+      { "device": "R20", "regex": "^network \\S+ \\S+ area" }
+    ]
+  },
+  "hints": [
+    "R20'de 'show run int lo0' ile Loopback0 adresinin 10.0.1.20 olup olmadığını doğrula; router-id bu adres olmalı.",
+    "Network statement YASAK: OSPF'i 'ip ospf 20 area X' ile interface altında etkinleştir.",
+    "/18 = 255.255.192.0; Area 40'taki 10.40.x.x ağlarını 'area 40 range 10.40.0.0 255.255.192.0' özetler."
+  ],
+  "answer_key_raw": "R20:\nR20> enable\nR20# configure terminal\nR20(config)# router ospf 20\nR20(config-router)# router-id 10.0.1.20\nR20(config-router)# area 40 range 10.40.0.0 255.255.192.0\nR20(config-router)# exit\nR20(config)# interface range loopback0,Ethernet0/0-1\nR20(config-if-range)# ip ospf 20 area 0\nR20(config-if-range)# interface Ethernet0/2\nR20(config-if)# ip ospf 20 area 40\nR20(config-if)# end\nR20# write",
+  "explanation": "Network statement yasak olduğu için OSPF, interface altında 'ip ospf <pid> area <alan>' ile etkinleştirilir: Area 0'a bakan Lo0, e0/0, e0/1 ve Area 40'a bakan e0/2. Router ID, Loopback0 adresi (10.0.1.20) olarak elle verilir. /18 özet (255.255.192.0) ABR olan R20'de 'area 40 range' komutuyla yapılır — özet daima kaynağın bağlı olduğu alan için ABR'de tanımlanır.",
+  "review": false
+}

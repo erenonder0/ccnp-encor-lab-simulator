@@ -1,0 +1,87 @@
+{
+  "id": 22,
+  "source_pages": [50, 51],
+  "title": "eBGP: R3 (AS 65300) Address-Family ile Komşuluklar + Loopback Ağlarını Duyurma",
+  "topics": ["bgp"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "eBGP is configured on R1 and R2. Configure R3 to complete these tasks:",
+    "1. Using the address-family command, configure eBGP according to the topology. Use Loopback 0 for the router-id.",
+    "2. Advertise R3's Loopback 0, 1, and 2 networks to AS 65100 and AS 65200."
+  ],
+  "topology_image": "/assets/items/item-22/topology.png",
+  "device_table": [
+    { "device": "R1 (AS 65100)", "interface": "e0/1", "ip": "209.165.202.129" },
+    { "device": "R2 (AS 65200)", "interface": "e0/1", "ip": "209.165.200.230" },
+    { "device": "R3 (AS 65300)", "interface": "e0/0/e0/1", "ip": "209.165.202.130 / 209.165.200.229" },
+    { "device": "R3", "interface": "Loopback0/1/2", "ip": "3.3.3.3, 33.33.33.33, 133.133.133.133" }
+  ],
+  "devices": [
+    {
+      "name": "R3",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Loopback0", "Loopback1", "Loopback2"],
+      "preconfig": [
+        "hostname R3",
+        "interface Loopback0",
+        " ip address 3.3.3.3 255.255.255.255",
+        "interface Loopback1",
+        " ip address 33.33.33.33 255.255.255.255",
+        "interface Loopback2",
+        " ip address 133.133.133.133 255.255.255.255",
+        "interface Ethernet0/0",
+        " ip address 209.165.202.130 255.255.255.252",
+        "interface Ethernet0/1",
+        " ip address 209.165.200.229 255.255.255.252"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R3",
+        "points": 5,
+        "required": [
+          { "path": ["router bgp 65300"], "line": "bgp router-id 3.3.3.3" },
+          { "path": ["router bgp 65300"], "line": "neighbor 209.165.200.230 remote-as 65200" },
+          { "path": ["router bgp 65300"], "line": "neighbor 209.165.202.129 remote-as 65100" },
+          { "path": ["router bgp 65300", "address-family ipv4"], "line": "neighbor 209.165.200.230 activate" },
+          { "path": ["router bgp 65300", "address-family ipv4"], "line": "neighbor 209.165.202.129 activate" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R3",
+        "points": 5,
+        "required": [
+          { "path": ["router bgp 65300", "address-family ipv4"], "line": "network 3.3.3.3 mask 255.255.255.255" },
+          { "path": ["router bgp 65300", "address-family ipv4"], "line": "network 33.33.33.33 mask 255.255.255.255" },
+          { "path": ["router bgp 65300", "address-family ipv4"], "line": "network 133.133.133.133 mask 255.255.255.255" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R3$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "R3'te 'show ip int brief' ile Loopback0/1/2 adreslerini doğrula: 3.3.3.3, 33.33.33.33, 133.133.133.133.",
+    "Komşular: R2=209.165.200.230 (AS 65200), R1=209.165.202.129 (AS 65100).",
+    "address-family ipv4 altında 'activate' + /32 network'ler 'mask 255.255.255.255'."
+  ],
+  "answer_key_raw": "R3:\nR3> enable\nR3# configure terminal\nR3(config)# router bgp 65300\nR3(config-router)# bgp router-id 3.3.3.3\nR3(config-router)# neighbor 209.165.200.230 remote-as 65200\nR3(config-router)# neighbor 209.165.202.129 remote-as 65100\nR3(config-router)# address-family ipv4\nR3(config-router-af)# neighbor 209.165.200.230 activate\nR3(config-router-af)# neighbor 209.165.202.129 activate\nR3(config-router-af)# network 3.3.3.3 mask 255.255.255.255\nR3(config-router-af)# network 33.33.33.33 mask 255.255.255.255\nR3(config-router-af)# network 133.133.133.133 mask 255.255.255.255\nR3(config-router-af)# end\nR3# write",
+  "explanation": "Item 13/14 ailesinin R3 varyantı: AS 65300'de router-id Loopback0 (3.3.3.3); eBGP komşuları R2 (AS 65200) ve R1 (AS 65100) address-family ipv4 altında activate edilir; Loopback ağları /32 mask ile her iki AS'e duyurulur.",
+  "review": false
+}

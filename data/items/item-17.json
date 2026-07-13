@@ -1,0 +1,105 @@
+{
+  "id": 17,
+  "source_pages": [36, 37, 38],
+  "title": "OSPF ACL Düzeltme (R10) + CoPP: Telnet /24 Kaynak, 8000 bps (R30)",
+  "topics": ["ospf", "acl", "copp"],
+  "difficulty": "hard",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "OSPF is preconfigured on all routers. Configure R10 and R30 to complete these tasks.",
+    "Task 1: Modify the existing ACL on R10 so that OSPF routes are received from R20 and R30. (1) The modification should only allow OSPF routes to pass. (2) Do not remove any configuration from R10 to achieve this task.",
+    "Task 2: Configure CoPP on R30 to achieve these results: (1) Permit Telnet traffic from 192.168.24.0/24. (2) Limit traffic to 8,000 bps. (3) Discard additional packets."
+  ],
+  "topology_image": "/assets/items/item-17/topology.png",
+  "device_table": [
+    { "device": "R10", "interface": "e0/0", "ip": "192.168.123.10/24" },
+    { "device": "R20", "interface": "e0/0", "ip": "192.168.123.20/24" },
+    { "device": "R30", "interface": "e0/0", "ip": "192.168.123.30/24" },
+    { "device": "R20", "interface": "e0/1 (PC20)", "ip": "192.168.24.0/24" },
+    { "device": "PC20", "interface": "-", "ip": "192.168.24.124" }
+  ],
+  "devices": [
+    {
+      "name": "R10",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R10",
+        "ip access-list extended 120",
+        " 10 deny ip any any",
+        "interface Ethernet0/0",
+        " ip address 192.168.123.10 255.255.255.0",
+        " ip access-group 120 in",
+        "router ospf 1",
+        " network 192.168.123.0 0.0.0.255 area 0"
+      ]
+    },
+    {
+      "name": "R30",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R30",
+        "interface Ethernet0/0",
+        " ip address 192.168.123.30 255.255.255.0",
+        "router ospf 1",
+        " network 192.168.123.0 0.0.0.255 area 0"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R10",
+        "points": 4,
+        "required": [
+          { "path": ["ip access-list extended 120"], "line": "5 permit ospf any any" }
+        ],
+        "path_alias": "acl_name"
+      },
+      {
+        "task": 2,
+        "device": "R30",
+        "points": 6,
+        "required_any_of": [
+          [
+            { "path": ["ip access-list extended TELNET"], "line": "permit tcp 192.168.24.0 0.0.0.255 any eq telnet" },
+            { "path": ["class-map match-any TELNET"], "line": "match access-group name TELNET" },
+            { "path": ["policy-map COPP", "class TELNET"], "line": "police 8000 conform-action transmit exceed-action drop" },
+            { "path": ["control-plane"], "line": "service-policy input COPP" }
+          ],
+          [
+            { "path": ["ip access-list extended TELNET"], "line": "permit tcp 192.168.24.0 0.0.0.255 any eq telnet" },
+            { "path": ["class-map match-all TELNET"], "line": "match access-group name TELNET" },
+            { "path": ["policy-map COPP", "class TELNET"], "line": "police 8000 conform-action transmit exceed-action drop" },
+            { "path": ["control-plane"], "line": "service-policy input COPP" }
+          ]
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R10$|R30$)" },
+      { "device": "*", "regex": "^enable (secret|password)" },
+      { "device": "R10", "regex": "^no ip access-list" }
+    ]
+  },
+  "hints": [
+    "R10'da 'show access-lists' ile ACL numarasını doğrula (120 bekleniyor); OSPF için '5 permit ospf any any'.",
+    "Kaynak bir /24 subnet: 'permit tcp 192.168.24.0 0.0.0.255 any eq telnet' (host değil!).",
+    "8,000 bps limit + fazlasını at: 'police 8000 conform-action transmit exceed-action drop'."
+  ],
+  "answer_key_raw": "R10:\nR10> enable\nR10# configure terminal\nR10(config)# ip access-list extended 120\nR10(config-ext-nacl)# 5 permit ospf any any\nR10(config-ext-nacl)# end\nR10# write\n\nR30:\nR30> enable\nR30# configure terminal\nR30(config)# ip access-list extended TELNET\nR30(config-ext-nacl)# permit tcp 192.168.24.0 0.0.0.255 any eq telnet\nR30(config-ext-nacl)# exit\nR30(config)# class-map match-any TELNET\nR30(config-cmap)# match access-group name TELNET\nR30(config-cmap)# exit\nR30(config)# policy-map COPP\nR30(config-pmap)# class TELNET\nR30(config-pmap-c)# police 8000 conform-action transmit exceed-action drop\nR30(config-pmap-c)# control-plane\nR30(config-cp)# service-policy input COPP\nR30(config-cp)# end\nR30# write",
+  "explanation": "Item 15/16 ailesinin OSPF varyantı: R10'daki ACL 120'ye '5 permit ospf any any' eklenir (deny'den önce). R30'da CoPP: 192.168.24.0/24 kaynağından Telnet'i tanımlayan ACL, class-map, 8000 bps police (fazlası drop), control-plane input service-policy.",
+  "review": false
+}

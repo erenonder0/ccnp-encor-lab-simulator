@@ -1,0 +1,108 @@
+{
+  "id": 16,
+  "source_pages": [33, 34, 35],
+  "title": "EIGRP ACL Düzeltme (R30) + CoPP: Telnet 10000 bps Police (R20)",
+  "topics": ["eigrp", "acl", "copp"],
+  "difficulty": "hard",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "EIGRP is preconfigured on all routers. Configure R20 and R30 to complete these tasks.",
+    "Task 1: Modify the existing ACL on R30 so that EIGRP routes are received from R10 and R20. (1) The modification should only allow EIGRP routes to pass. (2) Do not remove any configuration from R30 to achieve this task.",
+    "Task 2: Configure CoPP on R20 to achieve these results: (1) Permit Telnet traffic from 192.168.24.124. (2) Limit traffic to 10,000 bps. (3) Discard additional packets."
+  ],
+  "topology_image": "/assets/items/item-16/topology.png",
+  "device_table": [
+    { "device": "R10", "interface": "e0/0", "ip": "192.168.123.10/24" },
+    { "device": "R20", "interface": "e0/0", "ip": "192.168.123.20/24" },
+    { "device": "R30", "interface": "e0/0", "ip": "192.168.123.30/24" },
+    { "device": "R20", "interface": "e0/1 (PC20)", "ip": "192.168.24.0/24" },
+    { "device": "PC20", "interface": "-", "ip": "192.168.24.124" }
+  ],
+  "devices": [
+    {
+      "name": "R30",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R30",
+        "ip access-list extended 120",
+        " 10 deny ip any any",
+        "interface Ethernet0/0",
+        " ip address 192.168.123.30 255.255.255.0",
+        " ip access-group 120 in",
+        "router eigrp 1",
+        " network 192.168.123.0"
+      ]
+    },
+    {
+      "name": "R20",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1"],
+      "preconfig": [
+        "hostname R20",
+        "interface Ethernet0/0",
+        " ip address 192.168.123.20 255.255.255.0",
+        "interface Ethernet0/1",
+        " ip address 192.168.24.1 255.255.255.0",
+        "router eigrp 1",
+        " network 192.168.123.0",
+        " network 192.168.24.0"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R30",
+        "points": 4,
+        "required": [
+          { "path": ["ip access-list extended 120"], "line": "5 permit eigrp any any" }
+        ],
+        "path_alias": "acl_name"
+      },
+      {
+        "task": 2,
+        "device": "R20",
+        "points": 6,
+        "required_any_of": [
+          [
+            { "path": ["ip access-list extended TELNET"], "line": "permit tcp host 192.168.24.124 any eq telnet" },
+            { "path": ["class-map match-any TELNET"], "line": "match access-group name TELNET" },
+            { "path": ["policy-map COPP", "class TELNET"], "line": "police 10000 conform-action transmit exceed-action drop" },
+            { "path": ["control-plane"], "line": "service-policy input COPP" }
+          ],
+          [
+            { "path": ["ip access-list extended TELNET"], "line": "permit tcp host 192.168.24.124 any eq telnet" },
+            { "path": ["class-map match-all TELNET"], "line": "match access-group name TELNET" },
+            { "path": ["policy-map COPP", "class TELNET"], "line": "police 10000 conform-action transmit exceed-action drop" },
+            { "path": ["control-plane"], "line": "service-policy input COPP" }
+          ]
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R20$|R30$)" },
+      { "device": "*", "regex": "^enable (secret|password)" },
+      { "device": "R30", "regex": "^no ip access-list" }
+    ]
+  },
+  "hints": [
+    "R30'da 'show access-lists' ile ACL numarasını doğrula (120 bekleniyor); '5 permit eigrp any any' sırası deny'den önce olmalı.",
+    "Kaynak tek host: 'permit tcp host 192.168.24.124 any eq telnet'.",
+    "10,000 bps limit + fazlasını at: 'police 10000 conform-action transmit exceed-action drop'."
+  ],
+  "answer_key_raw": "R30:\nR30> enable\nR30# configure terminal\nR30(config)# ip access-list extended 120\nR30(config-ext-nacl)# 5 permit eigrp any any\nR30(config-ext-nacl)# end\nR30# write\n\nR20:\nR20> enable\nR20# configure terminal\nR20(config)# ip access-list extended TELNET\nR20(config-ext-nacl)# permit tcp host 192.168.24.124 any eq telnet\nR20(config-ext-nacl)# exit\nR20(config)# class-map match-any TELNET\nR20(config-cmap)# match access-group name TELNET\nR20(config-cmap)# exit\nR20(config)# policy-map COPP\nR20(config-pmap)# class TELNET\nR20(config-pmap-c)# police 10000 conform-action transmit exceed-action drop\nR20(config-pmap-c)# control-plane\nR20(config-cp)# service-policy input COPP\nR20(config-cp)# end\nR20# write",
+  "explanation": "Item 15'in varyantı: R30'daki ACL 120'ye deny'den önce işlenen '5 permit eigrp any any' eklenir. R20'de CoPP: PC20'den (192.168.24.124) gelen Telnet'i tanımlayan ACL, class-map, 10000 bps police (fazlası drop) ve control-plane'e input service-policy.",
+  "review": false
+}

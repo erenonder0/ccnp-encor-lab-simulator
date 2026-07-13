@@ -1,0 +1,117 @@
+{
+  "id": 19,
+  "source_pages": [42, 43],
+  "title": "VRF over GRE + IPsec: CORP VRF'i Tunnel0 ile Uzat ve Profille Koru (R10/R20)",
+  "topics": ["vrf", "gre", "ipsec"],
+  "difficulty": "hard",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "The operations team started configuring network devices for a new site. R10 and R20 are preconfigured with the CORP VRF. R10 has network connectivity to R20. Complete the configurations to achieve these goals:",
+    "Task 1: Extend the CORP VRF between R10 and R20 using Tunnel0.",
+    "Task 2: Protect Tunnel0 using the preconfigured profile."
+  ],
+  "topology_image": "/assets/items/item-19/topology.png",
+  "device_table": [
+    { "device": "R10", "interface": "e0/1 (Tun0 src)", "ip": "10.10.1.1/24" },
+    { "device": "R20", "interface": "e0/2 (Tun0 src)", "ip": "10.10.2.1/24" },
+    { "device": "R10/R20", "interface": "Tunnel0", "ip": "10.100.100.0/24" },
+    { "device": "R10", "interface": "CORP VLAN 100", "ip": "10.100.1.0/24 gw .1" },
+    { "device": "R20", "interface": "CORP VLAN 101", "ip": "10.101.2.0/24 gw .1" }
+  ],
+  "devices": [
+    {
+      "name": "R10",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Tunnel0"],
+      "preconfig": [
+        "hostname R10",
+        "vrf definition CORP",
+        " address-family ipv4",
+        "crypto ipsec profile MyProfile",
+        "interface Ethernet0/1",
+        " ip address 10.10.1.1 255.255.255.0",
+        "interface Tunnel0",
+        " ip address 10.100.100.1 255.255.255.0",
+        " tunnel source Ethernet0/1",
+        " tunnel destination 10.10.2.1",
+        "router ospf 100"
+      ]
+    },
+    {
+      "name": "R20",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/2", "Tunnel0"],
+      "preconfig": [
+        "hostname R20",
+        "vrf definition CORP",
+        " address-family ipv4",
+        "crypto ipsec profile MyProfile",
+        "interface Ethernet0/2",
+        " ip address 10.10.2.1 255.255.255.0",
+        "interface Tunnel0",
+        " ip address 10.100.100.2 255.255.255.0",
+        " tunnel source Ethernet0/2",
+        " tunnel destination 10.10.1.1",
+        "router ospf 100"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R10",
+        "points": 3,
+        "required": [
+          { "path": ["interface Tunnel0"], "line": "tunnel vrf CORP" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R10",
+        "points": 2,
+        "required": [
+          { "path": ["interface Tunnel0"], "line": "tunnel protection ipsec profile MyProfile" }
+        ]
+      },
+      {
+        "task": 1,
+        "device": "R20",
+        "points": 3,
+        "required": [
+          { "path": ["interface Tunnel0"], "line": "tunnel vrf CORP" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R20",
+        "points": 2,
+        "required": [
+          { "path": ["interface Tunnel0"], "line": "tunnel protection ipsec profile MyProfile" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R10$|R20$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "'tunnel vrf CORP' tünelin taşıma (underlay) tarafını CORP VRF'ine yerleştirir — CORP VRF'i tünel üzerinden uzatır.",
+    "R10'da 'show run | sec profile' ile IPsec profil adının MyProfile olup olmadığını doğrula; farklıysa gerçek adı kullan.",
+    "Koruma tünel arayüzü altında 'tunnel protection ipsec profile <ad>' ile yapılır."
+  ],
+  "answer_key_raw": "R10:\nR10> enable\nR10# configure terminal\nR10(config)# no router ospf 100\nR10(config)# router ospf 100 vrf CORP\nR10(config-router)# router-id 10.10.10.10\nR10(config-router)# exit\nR10(config)# crypto keyring test vrf CORP\nR10(conf-keyring)# pre-shared-key address 10.10.2.1 0.0.0.0 key cisco\nR10(conf-keyring)# exit\nR10(config)# interface Ethernet0/1\nR10(config-if)# ip vrf forwarding CORP\nR10(config-if)# ip address 10.10.1.1 255.255.255.0\nR10(config-if)# ip ospf network point-to-point\nR10(config-if)# ip ospf 100 area 0\nR10(config-if)# interface Tunnel0\nR10(config-if)# tunnel vrf CORP\nR10(config-if)# tunnel protection ipsec profile MyProfile\nR10(config-if)# end\nR10# write\n\nR20:\nR20> enable\nR20# configure terminal\nR20(config)# no router ospf 100\nR20(config)# router ospf 100 vrf CORP\nR20(config-router)# router-id 20.20.20.20\nR20(config-router)# exit\nR20(config)# crypto keyring test vrf CORP\nR20(conf-keyring)# pre-shared-key address 10.10.1.1 0.0.0.0 key cisco\nR20(conf-keyring)# exit\nR20(config)# interface Ethernet0/2\nR20(config-if)# ip vrf forwarding CORP\nR20(config-if)# ip address 10.10.2.1 255.255.255.0\nR20(config-if)# ip ospf network point-to-point\nR20(config-if)# ip ospf 100 area 0\nR20(config-if)# interface Tunnel0\nR20(config-if)# tunnel vrf CORP\nR20(config-if)# tunnel protection ipsec profile MyProfile\nR20(config-if)# end\nR20# write",
+  "explanation": "CORP VRF'i tünel üzerinden uzatmak için tünel arayüzünün taşıma tarafı 'tunnel vrf CORP' ile CORP VRF'ine alınır; komşuluk için transport interface de aynı VRF'e konur ve OSPF 'vrf CORP' örneğiyle çalıştırılır. Tünel, önceden tanımlı IPsec profili ile 'tunnel protection ipsec profile MyProfile' komutuyla korunur — bu, GRE tünelini IPsec ile şifreler.",
+  "review": false
+}

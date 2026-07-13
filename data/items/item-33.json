@@ -1,0 +1,84 @@
+{
+  "id": 33,
+  "source_pages": [74, 75],
+  "title": "OSPF: R20 Process 10, Router-ID Loopback0, Interface Areas, /16 Summary (Area 40)",
+  "topics": ["ospf"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "OSPF is preconfigured on all devices except R20. Configure R20 to complete these tasks.",
+    "Task 1: Configure OSPF according to the topology: (1) Use Process ID 10. (2) Use Loopback0 for the Router ID. (3) Advertise all networks into OSPF — do NOT use network statements under the OSPF process.",
+    "Task 2: Configure a /16 summary route for Area 40."
+  ],
+  "topology_image": "/assets/items/item-33/topology.png",
+  "device_table": [
+    { "device": "R20", "interface": "e0/0 (to R10, Area 0)", "ip": "10.10.20.20" },
+    { "device": "R20", "interface": "e0/1 (to R30, Area 0)", "ip": "10.20.30.20" },
+    { "device": "R20", "interface": "e0/2 (to R40, Area 40)", "ip": "10.40.50.20" },
+    { "device": "R20", "interface": "Loopback0", "ip": "10.0.1.20" }
+  ],
+  "devices": [
+    {
+      "name": "R20",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Loopback0"],
+      "preconfig": [
+        "hostname R20",
+        "interface Loopback0",
+        " ip address 10.0.1.20 255.255.255.255",
+        "interface Ethernet0/0",
+        " ip address 10.10.20.20 255.255.255.0",
+        "interface Ethernet0/1",
+        " ip address 10.20.30.20 255.255.255.0",
+        "interface Ethernet0/2",
+        " ip address 10.40.50.20 255.255.255.0"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R20",
+        "points": 6,
+        "required": [
+          { "path": ["router ospf 10"], "line": "router-id 10.0.1.20" },
+          { "path": ["interface Loopback0"], "line": "ip ospf 10 area 0" },
+          { "path": ["interface Ethernet0/0"], "line": "ip ospf 10 area 0" },
+          { "path": ["interface Ethernet0/1"], "line": "ip ospf 10 area 0" },
+          { "path": ["interface Ethernet0/2"], "line": "ip ospf 10 area 40" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R20",
+        "points": 4,
+        "required": [
+          { "path": ["router ospf 10"], "line": "area 40 range 10.40.0.0 255.255.0.0" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R20$)" },
+      { "device": "*", "regex": "^enable (secret|password)" },
+      { "device": "R20", "regex": "^network \\S+ \\S+ area" }
+    ]
+  },
+  "hints": [
+    "R20'de 'show run int lo0' ile Loopback0 adresini doğrula (10.0.1.20 bekleniyor); router-id bu adres olmalı.",
+    "Network statement YASAK: 'ip ospf 10 area X' ile interface altında etkinleştir (Lo0/e0/0/e0/1 Area 0, e0/2 Area 40).",
+    "/16 = 255.255.0.0; Area 40 için 'area 40 range 10.40.0.0 255.255.0.0'."
+  ],
+  "answer_key_raw": "R20:\nR20> enable\nR20# configure terminal\nR20(config)# router ospf 10\nR20(config-router)# router-id 10.0.1.20\nR20(config-router)# area 40 range 10.40.0.0 255.255.0.0\nR20(config-router)# exit\nR20(config)# interface range loopback0,Ethernet0/0-1\nR20(config-if-range)# ip ospf 10 area 0\nR20(config-if-range)# interface Ethernet0/2\nR20(config-if)# ip ospf 10 area 40\nR20(config-if)# end\nR20# write",
+  "explanation": "Item 21/25/33 ailesinin varyantı (Process 10, Loopback0, /16): OSPF interface altında 'ip ospf 10 area X' ile açılır (Lo0/e0/0/e0/1 Area 0, e0/2 Area 40). Router-id = Loopback0 (10.0.1.20). /16 özet (255.255.0.0) ABR'de 'area 40 range 10.40.0.0 255.255.0.0' ile.",
+  "review": false
+}

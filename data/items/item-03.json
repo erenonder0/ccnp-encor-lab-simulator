@@ -1,0 +1,119 @@
+{
+  "id": 3,
+  "source_pages": [5, 6],
+  "title": "Monitoring: NetFlow Monitor Apply, VLAN SPAN, IP SLA ICMP Echo (300s)",
+  "topics": ["netflow", "span", "ip-sla"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "Enable Flexible NetFlow on R1 E0/0 in both directions using the pre-configured flow monitor.",
+    "Configure the switch port analyzer on Sw1 and mirror all VLAN 10 traffic to interface E0/3 using session number 10.",
+    "Configure a basic IP SLA ICMP echo operation on R1 to ping Sw1's Loopback interface every 300 seconds."
+  ],
+  "topology_image": "/assets/items/item-03/topology.png",
+  "device_table": [
+    { "device": "R1", "interface": "e0/0", "ip": "10.10.1.2" },
+    { "device": "Sw1", "interface": "VLAN 10", "ip": "10.10.1.1" },
+    { "device": "Sw1", "interface": "VLAN 12", "ip": "10.12.1.1" },
+    { "device": "Sw1", "interface": "VLAN 14", "ip": "10.14.1.1" },
+    { "device": "PC1", "interface": "VLAN 12", "ip": "10.12.1.2" },
+    { "device": "PC2", "interface": "VLAN 14", "ip": "10.14.1.2" }
+  ],
+  "devices": [
+    {
+      "name": "R1",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R1",
+        "interface Ethernet0/0",
+        " ip address 10.10.1.2 255.255.255.0",
+        "flow record Record-FlowR1",
+        " match ipv4 source address",
+        " match ipv4 destination address",
+        "flow monitor Monitor-FlowR1",
+        " record Record-FlowR1",
+        "ip sla 10"
+      ]
+    },
+    {
+      "name": "Sw1",
+      "type": "ios-switch",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Ethernet0/3", "Loopback0"],
+      "preconfig": [
+        "hostname Sw1",
+        "interface Loopback0",
+        " ip address 2.2.2.2 255.255.255.255",
+        "interface Vlan10",
+        " ip address 10.10.1.1 255.255.255.0",
+        "interface Vlan12",
+        " ip address 10.12.1.1 255.255.255.0",
+        "interface Vlan14",
+        " ip address 10.14.1.1 255.255.255.0"
+      ]
+    },
+    { "name": "PC1", "type": "pc" },
+    { "name": "PC2", "type": "pc" }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R1",
+        "points": 3,
+        "required": [
+          { "path": ["interface Ethernet0/0"], "line": "ip flow monitor Monitor-FlowR1 input" },
+          { "path": ["interface Ethernet0/0"], "line": "ip flow monitor Monitor-FlowR1 output" }
+        ],
+        "path_alias": "monitor_name"
+      },
+      {
+        "task": 2,
+        "device": "Sw1",
+        "points": 4,
+        "required_any_of": [
+          [
+            { "path": [], "line": "monitor session 10 source vlan 10 both" },
+            { "path": [], "line": "monitor session 10 destination interface Ethernet0/3" }
+          ],
+          [
+            { "path": [], "line": "monitor session 10 source vlan 10" },
+            { "path": [], "line": "monitor session 10 destination interface Ethernet0/3" }
+          ]
+        ]
+      },
+      {
+        "task": 3,
+        "device": "R1",
+        "points": 3,
+        "required": [
+          { "path": ["ip sla 10"], "line": "icmp-echo 2.2.2.2" },
+          { "path": ["ip sla 10"], "line": "frequency 300" },
+          { "path": [], "line": "ip sla schedule 10 life forever start-time now" }
+        ],
+        "path_alias": "sla_id"
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R1$|Sw1$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "R1'de 'show run | sec sla' ile SLA ID'nin 10 olup olmadığını doğrula; farklıysa gerçek ID'yi kullan.",
+    "Sw1'de 'show ip int brief' ile Loopback IP'sinin 2.2.2.2 olup olmadığını doğrula; farklıysa gerçek IP'yi kullan.",
+    "R1'de 'show flow monitor' ile monitor adının Monitor-FlowR1 olup olmadığını doğrula; farklıysa gerçek adı kullan."
+  ],
+  "answer_key_raw": "R1:\nR1> enable\nR1# configure terminal\nR1(config)# ip sla 10\nR1(config-ip-sla)# icmp-echo 2.2.2.2\nR1(config-ip-sla-echo)# frequency 300\nR1(config-ip-sla-echo)# exit\nR1(config)# ip sla schedule 10 life forever start-time now\nR1(config)# interface Ethernet0/0\nR1(config-if)# ip flow monitor Monitor-FlowR1 input\nR1(config-if)# ip flow monitor Monitor-FlowR1 output\nR1(config-if)# end\nR1# write\n\nSw1:\nSw1> enable\nSw1# configure terminal\nSw1(config)# monitor session 10 source vlan 10 both\nSw1(config)# monitor session 10 destination interface Ethernet0/3\nSw1(config)# end\nSw1# write",
+  "explanation": "Önceden tanımlı flow monitor, interface altında 'ip flow monitor <ad> input/output' ile iki yönde uygulanır. VLAN SPAN'de kaynak 'source vlan 10' olarak verilir (yön belirtilmezse both varsayılır), hedef port ayrı satırdır. IP SLA ICMP echo'da hedef Sw1'in Loopback IP'sidir (show ip int brief ile doğrulanır) ve operasyon schedule edilmeden çalışmaz.",
+  "review": false
+}

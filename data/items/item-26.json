@@ -1,0 +1,80 @@
+{
+  "id": 26,
+  "source_pages": [58, 59, 60],
+  "title": "EtherChannel: LACP Trunk Onarımı (Po2) + STP Root (VLAN 10)",
+  "topics": ["etherchannel", "stp"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "Complete the tasks below by making changes to Sw10 only. No access is provided to Sw20 or Sw30.",
+    "Task 1: Sw20 is actively attempting to negotiate an 802.1Q trunking EtherChannel with Sw10 using LACP, but the channel is not functional. Resolve the issues on Sw10.",
+    "Task 2: Modify the spanning tree configuration to ensure that Sw10 is always the root for VLAN 10."
+  ],
+  "topology_image": "/assets/items/item-26/topology.png",
+  "device_table": [
+    { "device": "Sw10", "interface": "e0/0, e0/1 (to Sw20)", "ip": "Po2 uyesi olmali (LACP)" },
+    { "device": "Sw20", "interface": "e0/0, e0/1 (to Sw10)", "ip": "LACP active, Po2" },
+    { "device": "Sw10", "interface": "e0/2, e0/3 (to Sw30)", "ip": "-" }
+  ],
+  "devices": [
+    {
+      "name": "Sw10",
+      "type": "ios-switch",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Ethernet0/3", "Port-channel2"],
+      "preconfig": [
+        "hostname Sw10",
+        "vlan 10",
+        "interface Port-channel2",
+        "interface Ethernet0/0",
+        " channel-group 2 mode on",
+        "interface Ethernet0/1",
+        " channel-group 2 mode on"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "Sw10",
+        "points": 6,
+        "required": [
+          { "path": ["interface Ethernet0/0"], "line": "channel-group 2 mode active" },
+          { "path": ["interface Ethernet0/1"], "line": "channel-group 2 mode active" },
+          { "path": ["interface Port-channel2"], "line": "switchport trunk encapsulation dot1q" },
+          { "path": ["interface Port-channel2"], "line": "switchport mode trunk" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "Sw10",
+        "points": 4,
+        "required": [
+          { "path": [], "line": "spanning-tree vlan 10 priority 0" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!Sw10$)" },
+      { "device": "*", "regex": "^enable (secret|password)" },
+      { "device": "Sw10", "regex": "^\\s*channel-group 2 mode on" }
+    ]
+  },
+  "hints": [
+    "Karsi taraf LACP 'active': uyeler e0/0-1 'channel-group 2 mode active' olmali (mevcut 'mode on' statik kanal calismaz).",
+    "Po2 802.1Q trunk yapilmali: 'switchport trunk encapsulation dot1q' + 'switchport mode trunk'.",
+    "'Her zaman root' = 'spanning-tree vlan 10 priority 0'."
+  ],
+  "answer_key_raw": "Sw10:\nSw10> enable\nSw10# configure terminal\nSw10(config)# interface range Ethernet0/0-1\nSw10(config-if-range)# switchport trunk encapsulation dot1q\nSw10(config-if-range)# switchport mode trunk\nSw10(config-if-range)# channel-group 2 mode active\nSw10(config-if-range)# no shutdown\nSw10(config-if-range)# exit\nSw10(config)# interface Port-channel2\nSw10(config-if)# switchport trunk encapsulation dot1q\nSw10(config-if)# switchport mode trunk\nSw10(config-if)# no shutdown\nSw10(config-if)# exit\nSw10(config)# spanning-tree vlan 10 priority 0\nSw10(config)# end\nSw10# write",
+  "explanation": "Item 11/12 ailesinin varyantı (Po2): Sw20 LACP 'active' ile pazarlık ediyor ama Sw10 üyeleri 'mode on' (statik) — uyumsuz. Üyeler e0/0-1 dot1q trunk + 'channel-group 2 mode active' yapılır, Po2 trunk yapılır, VLAN 10 için 'spanning-tree vlan 10 priority 0' ile Sw10 kök köprü olur.",
+  "review": false
+}

@@ -1,0 +1,83 @@
+{
+  "id": 39,
+  "source_pages": [87, 88],
+  "title": "OSPF: R30 Process 100, Router-ID Loopback0, Network Statements, /18 Summary (Area 50)",
+  "topics": ["ospf"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "Do not remove any existing configurations from the devices.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "OSPF is preconfigured on all devices except R30. Configure R30 to complete these tasks.",
+    "Task 1: Configure OSPF according to the topology: (1) Use Process ID 100. (2) Use Loopback0 for the Router ID. (3) Advertise all networks into OSPF — USE network statements under the OSPF process.",
+    "Task 2: Configure a /18 summary route for Area 50."
+  ],
+  "topology_image": "/assets/items/item-39/topology.png",
+  "device_table": [
+    { "device": "R30", "interface": "e0/0 (to R20, Area 0)", "ip": "10.20.30.30" },
+    { "device": "R30", "interface": "e0/1 (to R10, Area 0)", "ip": "10.10.30.30" },
+    { "device": "R30", "interface": "e0/2 (to R50, Area 50)", "ip": "10.50.40.30" },
+    { "device": "R30", "interface": "Loopback0", "ip": "10.30.0.1" }
+  ],
+  "devices": [
+    {
+      "name": "R30",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Loopback0"],
+      "preconfig": [
+        "hostname R30",
+        "interface Loopback0",
+        " ip address 10.30.0.1 255.255.255.255",
+        "interface Ethernet0/0",
+        " ip address 10.20.30.30 255.255.255.0",
+        "interface Ethernet0/1",
+        " ip address 10.10.30.30 255.255.255.0",
+        "interface Ethernet0/2",
+        " ip address 10.50.40.30 255.255.255.0"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R30",
+        "points": 6,
+        "required": [
+          { "path": ["router ospf 100"], "line": "router-id 10.30.0.1" },
+          { "path": ["router ospf 100"], "line": "network 10.30.0.1 0.0.0.0 area 0" },
+          { "path": ["router ospf 100"], "line": "network 10.10.30.0 0.0.0.255 area 0" },
+          { "path": ["router ospf 100"], "line": "network 10.20.30.0 0.0.0.255 area 0" },
+          { "path": ["router ospf 100"], "line": "network 10.50.40.0 0.0.0.255 area 50" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R30",
+        "points": 4,
+        "required": [
+          { "path": ["router ospf 100"], "line": "area 50 range 10.50.0.0 255.255.192.0" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R30$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "R30'de 'show run int lo0' ile Loopback0 adresini doğrula (10.30.0.1 bekleniyor); router-id bu adres olmalı.",
+    "Bu item network statement İSTER: 'network <ağ> <wildcard> area X' (Lo0 ve e0/0/e0/1 Area 0, e0/2 10.50.40.0 Area 50).",
+    "/18 = 255.255.192.0; Area 50 için 'area 50 range 10.50.0.0 255.255.192.0'."
+  ],
+  "answer_key_raw": "R30:\nR30> enable\nR30# configure terminal\nR30(config)# router ospf 100\nR30(config-router)# router-id 10.30.0.1\nR30(config-router)# network 10.30.0.1 0.0.0.0 area 0\nR30(config-router)# network 10.10.30.0 0.0.0.255 area 0\nR30(config-router)# network 10.20.30.0 0.0.0.255 area 0\nR30(config-router)# network 10.50.40.0 0.0.0.255 area 50\nR30(config-router)# area 50 range 10.50.0.0 255.255.192.0\nR30(config-router)# end\nR30# write",
+  "explanation": "Item 25/28 ailesinin network-statement varyantı (R30, Process 100, Loopback0, /18): OSPF geleneksel 'network' cümleleriyle açılır (Lo0 10.30.0.1/32, e0/1 10.10.30.0/24, e0/0 10.20.30.0/24 Area 0; e0/2 10.50.40.0/24 Area 50). Router-id = Loopback0 (10.30.0.1). /18 özet (255.255.192.0) ABR'de 'area 50 range 10.50.0.0 255.255.192.0' ile.",
+  "review": false
+}

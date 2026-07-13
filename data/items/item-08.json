@@ -1,0 +1,84 @@
+{
+  "id": 8,
+  "source_pages": [15, 16, 17],
+  "title": "OSPF: R30 Process 10, Router-ID Loopback0, Interface-based Areas, /17 Summary (Area 50)",
+  "topics": ["ospf"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "OSPF is preconfigured on all devices except R30. Configure R30 to complete these tasks.",
+    "Task 1: Configure OSPF according to the topology using these requirements: (1) Use Process ID 10. (2) Use Loopback0 for the Router ID. (3) Advertise all networks into OSPF — do NOT use network statements under the OSPF process to accomplish this task.",
+    "Task 2: Configure a /17 summary route for Area 50."
+  ],
+  "topology_image": "/assets/items/item-08/topology.png",
+  "device_table": [
+    { "device": "R30", "interface": "e0/0 (to R10)", "ip": "10.10.30.30" },
+    { "device": "R30", "interface": "e0/1 (to R20)", "ip": "10.20.30.30" },
+    { "device": "R30", "interface": "e0/2 (to R50, Area 50)", "ip": "10.50.40.30" },
+    { "device": "R30", "interface": "Loopback0", "ip": "10.0.1.30" }
+  ],
+  "devices": [
+    {
+      "name": "R30",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Loopback0"],
+      "preconfig": [
+        "hostname R30",
+        "interface Loopback0",
+        " ip address 10.0.1.30 255.255.255.255",
+        "interface Ethernet0/0",
+        " ip address 10.10.30.30 255.255.255.0",
+        "interface Ethernet0/1",
+        " ip address 10.20.30.30 255.255.255.0",
+        "interface Ethernet0/2",
+        " ip address 10.50.40.30 255.255.255.0"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R30",
+        "points": 6,
+        "required": [
+          { "path": ["router ospf 10"], "line": "router-id 10.0.1.30" },
+          { "path": ["interface Loopback0"], "line": "ip ospf 10 area 0" },
+          { "path": ["interface Ethernet0/0"], "line": "ip ospf 10 area 0" },
+          { "path": ["interface Ethernet0/1"], "line": "ip ospf 10 area 0" },
+          { "path": ["interface Ethernet0/2"], "line": "ip ospf 10 area 50" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R30",
+        "points": 4,
+        "required": [
+          { "path": ["router ospf 10"], "line": "area 50 range 10.50.0.0 255.255.128.0" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R30$)" },
+      { "device": "*", "regex": "^enable (secret|password)" },
+      { "device": "R30", "regex": "^network \\S+ \\S+ area" }
+    ]
+  },
+  "hints": [
+    "R30'da 'show run int lo0' ile Loopback0 adresinin 10.0.1.30 olup olmadığını doğrula; router-id bu adres olmalı.",
+    "Network statement YASAK: OSPF'i 'ip ospf 10 area X' ile interface altında etkinleştir.",
+    "/17 = 255.255.128.0; Area 50'deki 10.50.x.x ağlarını 'area 50 range 10.50.0.0 255.255.128.0' özetler."
+  ],
+  "answer_key_raw": "R30:\nR30> enable\nR30# configure terminal\nR30(config)# router ospf 10\nR30(config-router)# router-id 10.0.1.30\nR30(config-router)# area 50 range 10.50.0.0 255.255.128.0\nR30(config-router)# exit\nR30(config)# interface range loopback0,Ethernet0/0-1\nR30(config-if-range)# ip ospf 10 area 0\nR30(config-if-range)# interface Ethernet0/2\nR30(config-if)# ip ospf 10 area 50\nR30(config-if)# end\nR30# write",
+  "explanation": "Item 7'nin R30 varyantı: network statement yasak olduğundan OSPF interface altında 'ip ospf 10 area X' ile açılır (Lo0/e0/0/e0/1 → Area 0, e0/2 → Area 50). Router ID = Loopback0 (10.0.1.30). /17 özet (255.255.128.0) ABR R30'da 'area 50 range' ile yapılır.",
+  "review": false
+}

@@ -1,0 +1,88 @@
+{
+  "id": 14,
+  "source_pages": [28, 29],
+  "title": "eBGP: R1 (AS 100) Address-Family ile Komşuluklar + Loopback Ağlarını Duyurma",
+  "topics": ["bgp"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "eBGP is configured on R2 and R3. Configure R1 to complete these tasks:",
+    "1. Using the address-family command, configure eBGP according to the topology. Use Loopback 0 for the router-id.",
+    "2. Advertise R1's Loopback 0, 1, and 2 networks to AS 200 and AS 300."
+  ],
+  "topology_image": "/assets/items/item-14/topology.png",
+  "device_table": [
+    { "device": "R1 (AS 100)", "interface": "e0/0", "ip": "209.165.200.225" },
+    { "device": "R1 (AS 100)", "interface": "e0/1", "ip": "209.165.202.129" },
+    { "device": "R2 (AS 200)", "interface": "e0/0", "ip": "209.165.200.226" },
+    { "device": "R3 (AS 300)", "interface": "e0/0", "ip": "209.165.202.130" },
+    { "device": "R1", "interface": "Loopback0/1/2", "ip": "1.1.1.1, 11.11.11.11, 111.111.111.111" }
+  ],
+  "devices": [
+    {
+      "name": "R1",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Loopback0", "Loopback1", "Loopback2"],
+      "preconfig": [
+        "hostname R1",
+        "interface Loopback0",
+        " ip address 1.1.1.1 255.255.255.255",
+        "interface Loopback1",
+        " ip address 11.11.11.11 255.255.255.255",
+        "interface Loopback2",
+        " ip address 111.111.111.111 255.255.255.255",
+        "interface Ethernet0/0",
+        " ip address 209.165.200.225 255.255.255.252",
+        "interface Ethernet0/1",
+        " ip address 209.165.202.129 255.255.255.252"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R1",
+        "points": 5,
+        "required": [
+          { "path": ["router bgp 100"], "line": "bgp router-id 1.1.1.1" },
+          { "path": ["router bgp 100"], "line": "neighbor 209.165.200.226 remote-as 200" },
+          { "path": ["router bgp 100"], "line": "neighbor 209.165.202.130 remote-as 300" },
+          { "path": ["router bgp 100", "address-family ipv4"], "line": "neighbor 209.165.200.226 activate" },
+          { "path": ["router bgp 100", "address-family ipv4"], "line": "neighbor 209.165.202.130 activate" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R1",
+        "points": 5,
+        "required": [
+          { "path": ["router bgp 100", "address-family ipv4"], "line": "network 1.1.1.1 mask 255.255.255.255" },
+          { "path": ["router bgp 100", "address-family ipv4"], "line": "network 11.11.11.11 mask 255.255.255.255" },
+          { "path": ["router bgp 100", "address-family ipv4"], "line": "network 111.111.111.111 mask 255.255.255.255" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R1$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "R1'de 'show ip int brief' ile Loopback0/1/2 adreslerini doğrula: 1.1.1.1, 11.11.11.11, 111.111.111.111.",
+    "Komşular: R2=209.165.200.226 (AS 200), R3=209.165.202.130 (AS 300).",
+    "address-family ipv4 altında 'activate' + /32 network'ler 'mask 255.255.255.255'."
+  ],
+  "answer_key_raw": "R1:\nR1> enable\nR1# configure terminal\nR1(config)# router bgp 100\nR1(config-router)# bgp router-id 1.1.1.1\nR1(config-router)# neighbor 209.165.200.226 remote-as 200\nR1(config-router)# neighbor 209.165.202.130 remote-as 300\nR1(config-router)# address-family ipv4\nR1(config-router-af)# neighbor 209.165.200.226 activate\nR1(config-router-af)# neighbor 209.165.202.130 activate\nR1(config-router-af)# network 1.1.1.1 mask 255.255.255.255\nR1(config-router-af)# network 11.11.11.11 mask 255.255.255.255\nR1(config-router-af)# network 111.111.111.111 mask 255.255.255.255\nR1(config-router-af)# end\nR1# write",
+  "explanation": "Item 13'ün R1 varyantı: AS 100'de router-id Loopback0 (1.1.1.1); eBGP komşuları R2 (209.165.200.226, AS 200) ve R3 (209.165.202.130, AS 300) address-family ipv4 altında activate edilir; Loopback ağları /32 mask ile duyurulur.",
+  "review": false
+}

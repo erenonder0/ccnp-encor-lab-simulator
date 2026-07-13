@@ -1,0 +1,105 @@
+{
+  "id": 4,
+  "source_pages": [7, 8],
+  "title": "Monitoring: NetFlow Exporter (10.10.1.110), IP SLA HTTP GET (300s), SPAN Session 7",
+  "topics": ["netflow", "span", "ip-sla"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "Complete the Flexible NetFlow Flow Exporter configuration on R1 to send data to the collector located at 10.10.1.110.",
+    "Configure a basic IP SLA HTTP GET operation on R1 to monitor the server at 10.10.1.100 every 300 seconds.",
+    "Configure the switch port analyzer on Sw1 using these settings: Session number 7 • Mirror all traffic on E0/0 • Direct the output to interface E1/1."
+  ],
+  "topology_image": "/assets/items/item-04/topology.png",
+  "device_table": [
+    { "device": "R1", "interface": "e0/0", "ip": "10.10.1.2" },
+    { "device": "Sw1", "interface": "VLAN 10", "ip": "10.10.1.1" },
+    { "device": "Sw1", "interface": "VLAN 12", "ip": "10.12.1.1" },
+    { "device": "Sw1", "interface": "VLAN 14", "ip": "10.14.1.1" },
+    { "device": "PC1", "interface": "VLAN 12", "ip": "10.12.1.2" },
+    { "device": "PC2", "interface": "VLAN 14", "ip": "10.14.1.2" }
+  ],
+  "devices": [
+    {
+      "name": "R1",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R1",
+        "interface Ethernet0/0",
+        " ip address 10.10.1.2 255.255.255.0",
+        "flow exporter Export-NetFlowENCOR",
+        " transport udp 2055"
+      ]
+    },
+    {
+      "name": "Sw1",
+      "type": "ios-switch",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Ethernet1/1"],
+      "preconfig": [
+        "hostname Sw1",
+        "interface Vlan10",
+        " ip address 10.10.1.1 255.255.255.0",
+        "interface Vlan12",
+        " ip address 10.12.1.1 255.255.255.0",
+        "interface Vlan14",
+        " ip address 10.14.1.1 255.255.255.0"
+      ]
+    },
+    { "name": "PC1", "type": "pc" },
+    { "name": "PC2", "type": "pc" }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R1",
+        "points": 3,
+        "required": [
+          { "path": ["flow exporter Export-NetFlowENCOR"], "line": "destination 10.10.1.110" }
+        ],
+        "path_alias": "exporter_name"
+      },
+      {
+        "task": 2,
+        "device": "R1",
+        "points": 3,
+        "required": [
+          { "path": ["ip sla 10"], "line": "http get http://10.10.1.100" },
+          { "path": ["ip sla 10"], "line": "frequency 300" },
+          { "path": [], "line": "ip sla schedule 10 life forever start-time now" }
+        ],
+        "path_alias": "sla_id"
+      },
+      {
+        "task": 3,
+        "device": "Sw1",
+        "points": 4,
+        "required": [
+          { "path": [], "line": "monitor session 7 source interface Ethernet0/0 both" },
+          { "path": [], "line": "monitor session 7 destination interface Ethernet1/1" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R1$|Sw1$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "R1'de 'show flow exporter' ile exporter adının Export-NetFlowENCOR olup olmadığını doğrula; farklıysa ön-config'teki gerçek adı kullan.",
+    "R1'de 'show run | sec sla' ile SLA ID'nin 10 olup olmadığını doğrula; farklıysa gerçek ID'yi kullan."
+  ],
+  "answer_key_raw": "R1:\nR1> enable\nR1# configure terminal\nR1(config)# flow exporter Export-NetFlowENCOR\nR1(config-flow-exporter)# destination 10.10.1.110\nR1(config-flow-exporter)# exit\nR1(config)# ip sla 10\nR1(config-ip-sla)# http get http://10.10.1.100\nR1(config-ip-sla-http)# frequency 300\nR1(config-ip-sla-http)# exit\nR1(config)# ip sla schedule 10 life forever start-time now\nR1(config)# end\nR1# write\n\nSw1:\nSw1> enable\nSw1# configure terminal\nSw1(config)# monitor session 7 source interface e0/0 both\nSw1(config)# monitor session 7 destination interface e1/1\nSw1(config)# end\nSw1# write",
+  "explanation": "Exporter'da collector IP'si 'destination' ile tanımlanır (UDP portu bu item'da ön-config'te hazır). IP SLA HTTP GET operasyonu 'http get <url>' + 'frequency 300' ile kurulur ve 'ip sla schedule' ile başlatılır. SPAN'de tüm E0/0 trafiği (both) session 7 ile E1/1'e yönlendirilir.",
+  "review": false
+}

@@ -1,0 +1,112 @@
+{
+  "id": 35,
+  "source_pages": [79, 80],
+  "title": "Monitoring: NetFlow Monitor Apply (R1 e0/0), IP SLA ICMP Echo (300s, PC1), SPAN Session 12 (VLAN 12)",
+  "topics": ["netflow", "span", "ip-sla"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "Do not remove any existing configurations from the devices.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "The Operations team started configuring several monitoring activities. Complete the configurations for the tasks below.",
+    "1. Enable Flexible NetFlow on R1 E0/0 in both directions using the pre-configured flow monitor.",
+    "2. Configure the switch port analyzer on Sw1 and mirror all VLAN 12 traffic to interface E1/3 using session number 12.",
+    "3. Configure a basic IP SLA ICMP echo operation on R1 to ping PC1 every 300 seconds."
+  ],
+  "topology_image": "/assets/items/item-35/topology.png",
+  "device_table": [
+    { "device": "R1", "interface": "e0/0", "ip": "10.10.1.2" },
+    { "device": "Sw1", "interface": "VLAN 10", "ip": "10.10.1.1" },
+    { "device": "Sw1", "interface": "VLAN 12", "ip": "10.12.1.1" },
+    { "device": "Sw1", "interface": "VLAN 14", "ip": "10.14.1.1" },
+    { "device": "PC1", "interface": "VLAN 12", "ip": "10.12.1.2" },
+    { "device": "PC2", "interface": "VLAN 14", "ip": "10.14.1.2" }
+  ],
+  "devices": [
+    {
+      "name": "R1",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R1",
+        "interface Ethernet0/0",
+        " ip address 10.10.1.2 255.255.255.0",
+        "flow record Record-R1Flow",
+        " match ipv4 source address",
+        " match ipv4 destination address",
+        "flow monitor Monitor-R1Flow",
+        " record Record-R1Flow",
+        "ip sla 10"
+      ]
+    },
+    {
+      "name": "Sw1",
+      "type": "ios-switch",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Ethernet1/3", "Loopback0"],
+      "preconfig": [
+        "hostname Sw1",
+        "interface Vlan10",
+        " ip address 10.10.1.1 255.255.255.0",
+        "interface Vlan12",
+        " ip address 10.12.1.1 255.255.255.0",
+        "interface Vlan14",
+        " ip address 10.14.1.1 255.255.255.0"
+      ]
+    },
+    { "name": "PC1", "type": "pc" },
+    { "name": "PC2", "type": "pc" }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R1",
+        "points": 3,
+        "required": [
+          { "path": ["interface Ethernet0/0"], "line": "ip flow monitor Monitor-R1Flow input" },
+          { "path": ["interface Ethernet0/0"], "line": "ip flow monitor Monitor-R1Flow output" }
+        ],
+        "path_alias": "monitor_name"
+      },
+      {
+        "task": 3,
+        "device": "R1",
+        "points": 3,
+        "required": [
+          { "path": ["ip sla 10"], "line": "icmp-echo 10.12.1.2" },
+          { "path": ["ip sla 10"], "line": "frequency 300" },
+          { "path": [], "line": "ip sla schedule 10 life forever start-time now" }
+        ],
+        "path_alias": "sla_id"
+      },
+      {
+        "task": 2,
+        "device": "Sw1",
+        "points": 4,
+        "required": [
+          { "path": [], "line": "monitor session 12 source vlan 12 both" },
+          { "path": [], "line": "monitor session 12 destination interface Ethernet1/3" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R1$|Sw1$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "R1'de 'show flow monitor' ile monitor adının Monitor-R1Flow olup olmadığını doğrula; e0/0 altında input ve output ayrı ayrı uygulanır.",
+    "IP SLA hedefi PC1 = 10.12.1.2, frequency 300; 'ip sla schedule 10 life forever start-time now' ile başlatılır.",
+    "SPAN VLAN kaynağı: 'monitor session 12 source vlan 12 both' + 'monitor session 12 destination interface e1/3'."
+  ],
+  "answer_key_raw": "R1:\nR1> enable\nR1# configure terminal\nR1(config)# ip sla 10\nR1(config-ip-sla)# icmp-echo 10.12.1.2\nR1(config-ip-sla-echo)# frequency 300\nR1(config-ip-sla-echo)# exit\nR1(config)# ip sla schedule 10 life forever start-time now\nR1(config)# interface Ethernet0/0\nR1(config-if)# ip flow monitor Monitor-R1Flow input\nR1(config-if)# ip flow monitor Monitor-R1Flow output\nR1(config-if)# end\nR1# write\n\nSw1:\nSw1> enable\nSw1# configure terminal\nSw1(config)# monitor session 12 source vlan 12 both\nSw1(config)# monitor session 12 destination interface e1/3\nSw1(config)# end\nSw1# write",
+  "explanation": "Item 05 ailesinin varyantı (birleşik izleme labı): Önceden tanımlı flow monitor (Monitor-R1Flow) R1 e0/0 altında input ve output yönlerinde ayrı ayrı uygulanır. IP SLA ICMP echo hedefi PC1'dir (10.12.1.2), frequency 300 saniye; schedule edilmeden başlamaz. SPAN'de VLAN 12'deki tüm trafik (both) session 12 ile e1/3'e aynalanır.",
+  "review": false
+}

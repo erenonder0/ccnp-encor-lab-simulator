@@ -1,0 +1,106 @@
+{
+  "id": 1,
+  "source_pages": [1, 2],
+  "title": "Monitoring: NetFlow Exporter (UDP 2055), SPAN Session 11, IP SLA Schedule",
+  "topics": ["netflow", "span", "ip-sla"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "Complete the Flexible NetFlow Flow Exporter configuration on R1 to send data to the collector using UDP port 2055.",
+    "Configure the switch port analyzer on Sw1 and mirror all communication to and from PC1 to interface E1/1 using session number 11.",
+    "Schedule the pre-configured IP SLA operation on R1 to start running immediately and to run indefinitely."
+  ],
+  "topology_image": "/assets/items/item-01/topology.png",
+  "device_table": [
+    { "device": "R1", "interface": "e0/0", "ip": "10.10.1.2" },
+    { "device": "Sw1", "interface": "VLAN 10", "ip": "10.10.1.1" },
+    { "device": "Sw1", "interface": "VLAN 12", "ip": "10.12.1.1" },
+    { "device": "Sw1", "interface": "VLAN 14", "ip": "10.14.1.1" },
+    { "device": "PC1", "interface": "VLAN 12", "ip": "10.12.1.2" },
+    { "device": "PC2", "interface": "VLAN 14", "ip": "10.14.1.2" }
+  ],
+  "devices": [
+    {
+      "name": "R1",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R1",
+        "interface Ethernet0/0",
+        " ip address 10.10.1.2 255.255.255.0",
+        "flow exporter Export-NetFlowENCOR",
+        " description ENCOR lab exporter",
+        "ip sla 100",
+        " icmp-echo 10.10.1.1"
+      ]
+    },
+    {
+      "name": "Sw1",
+      "type": "ios-switch",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Ethernet1/0", "Ethernet1/1"],
+      "preconfig": [
+        "hostname Sw1",
+        "interface Vlan10",
+        " ip address 10.10.1.1 255.255.255.0",
+        "interface Vlan12",
+        " ip address 10.12.1.1 255.255.255.0",
+        "interface Vlan14",
+        " ip address 10.14.1.1 255.255.255.0"
+      ]
+    },
+    { "name": "PC1", "type": "pc" },
+    { "name": "PC2", "type": "pc" }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R1",
+        "points": 3,
+        "required": [
+          { "path": ["flow exporter Export-NetFlowENCOR"], "line": "destination 10.10.1.1" },
+          { "path": ["flow exporter Export-NetFlowENCOR"], "line": "transport udp 2055" }
+        ],
+        "path_alias": "exporter_name"
+      },
+      {
+        "task": 2,
+        "device": "Sw1",
+        "points": 4,
+        "required": [
+          { "path": [], "line": "monitor session 11 source interface Ethernet0/1 both" },
+          { "path": [], "line": "monitor session 11 destination interface Ethernet1/1" }
+        ]
+      },
+      {
+        "task": 3,
+        "device": "R1",
+        "points": 3,
+        "required": [
+          { "path": [], "line": "ip sla schedule 100 life forever start-time now" }
+        ],
+        "path_alias": "sla_id"
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R1$|Sw1$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "R1'de 'show flow exporter' ile exporter adının Export-NetFlowENCOR olup olmadığını doğrula; farklıysa ön-config'teki gerçek adı kullan.",
+    "R1'de 'show run | sec sla' ile önceden tanımlı SLA ID'nin 100 olup olmadığını doğrula; farklıysa gerçek ID'yi kullan."
+  ],
+  "answer_key_raw": "R1:\nR1> enable\nR1# configure terminal\nR1(config)# flow exporter Export-NetFlowENCOR\nR1(config-flow-exporter)# destination 10.10.1.1\nR1(config-flow-exporter)# transport udp 2055\nR1(config-flow-exporter)# exit\nR1(config)# ip sla schedule 100 life forever start-time now\nR1(config)# end\nR1# write\n\nSw1:\nSw1> enable\nSw1# configure terminal\nSw1(config)# monitor session 11 source interface e0/1 both\nSw1(config)# monitor session 11 destination interface e1/1\nSw1(config)# end\nSw1# write",
+  "explanation": "Flow exporter'da collector'a hangi UDP portuyla gönderileceği 'transport udp 2055' ile belirlenir; collector IP'si 'destination' satırıdır. SPAN'de yalnızca PC1 isteniyor → tek kaynak port (e0/1) 'both' yönüyle verilir, hedef e1/1'dir. Önceden tanımlı IP SLA operasyonu 'ip sla schedule <ID> life forever start-time now' ile hemen ve süresiz başlatılır.",
+  "review": false
+}

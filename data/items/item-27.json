@@ -1,0 +1,104 @@
+{
+  "id": 27,
+  "source_pages": [61, 62, 63],
+  "title": "EIGRP ACL Düzeltme (R2, ACL 151) + CoPP: SSH /24, 10000 bps (R3)",
+  "topics": ["eigrp", "acl", "copp"],
+  "difficulty": "hard",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "EIGRP is preconfigured on all routers. Configure R2 and R3 to complete these tasks.",
+    "Task 1: Modify the existing ACL on R2 so that EIGRP routes are received from R1 and R3. (1) The modification should only allow EIGRP routes to pass. (2) Do not remove any configuration from R2 to achieve this task.",
+    "Task 2: Configure CoPP on R3 to achieve these results: (1) Permit SSH traffic from 192.168.210.0/24. (2) Limit traffic to 10,000 bps. (3) Discard additional packets."
+  ],
+  "topology_image": "/assets/items/item-27/topology.png",
+  "device_table": [
+    { "device": "R1", "interface": "e0/0 / e0/1", "ip": "192.168.213.1/24 / 192.168.210.2/24" },
+    { "device": "R2", "interface": "e0/0", "ip": "192.168.213.2/24" },
+    { "device": "R3", "interface": "e0/0", "ip": "192.168.213.3/24" },
+    { "device": "PC10", "interface": "-", "ip": "192.168.210.10" }
+  ],
+  "devices": [
+    {
+      "name": "R2",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R2",
+        "ip access-list extended 151",
+        " 10 deny ip any any",
+        "interface Ethernet0/0",
+        " ip address 192.168.213.2 255.255.255.0",
+        " ip access-group 151 in",
+        "router eigrp 1",
+        " network 192.168.213.0 0.0.0.255"
+      ]
+    },
+    {
+      "name": "R3",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname R3",
+        "interface Ethernet0/0",
+        " ip address 192.168.213.3 255.255.255.0",
+        "router eigrp 1",
+        " network 192.168.213.0 0.0.0.255"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R2",
+        "points": 4,
+        "required": [
+          { "path": ["ip access-list extended 151"], "line": "5 permit eigrp any any" }
+        ],
+        "path_alias": "acl_name"
+      },
+      {
+        "task": 2,
+        "device": "R3",
+        "points": 6,
+        "required_any_of": [
+          [
+            { "path": ["ip access-list extended SSH"], "line": "permit tcp 192.168.210.0 0.0.0.255 any eq 22" },
+            { "path": ["class-map match-any SSH"], "line": "match access-group name SSH" },
+            { "path": ["policy-map COPP", "class SSH"], "line": "police 10000 conform-action transmit exceed-action drop" },
+            { "path": ["control-plane"], "line": "service-policy input COPP" }
+          ],
+          [
+            { "path": ["ip access-list extended SSH"], "line": "permit tcp 192.168.210.0 0.0.0.255 any eq 22" },
+            { "path": ["class-map match-all SSH"], "line": "match access-group name SSH" },
+            { "path": ["policy-map COPP", "class SSH"], "line": "police 10000 conform-action transmit exceed-action drop" },
+            { "path": ["control-plane"], "line": "service-policy input COPP" }
+          ]
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R2$|R3$)" },
+      { "device": "*", "regex": "^enable (secret|password)" },
+      { "device": "R2", "regex": "^no ip access-list" }
+    ]
+  },
+  "hints": [
+    "R2'de 'show access-lists' ile ACL numarasını doğrula (151 bekleniyor); EIGRP için '5 permit eigrp any any' (deny'den önce sıra numarası).",
+    "Kaynak /24: 'permit tcp 192.168.210.0 0.0.0.255 any eq 22' (SSH = TCP 22).",
+    "10,000 bps + fazlasını at: 'police 10000 conform-action transmit exceed-action drop'; control-plane altında 'service-policy input COPP'."
+  ],
+  "answer_key_raw": "R2:\nR2> enable\nR2# configure terminal\nR2(config)# ip access-list extended 151\nR2(config-ext-nacl)# 5 permit eigrp any any\nR2(config-ext-nacl)# end\nR2# write\n\nR3:\nR3> enable\nR3# configure terminal\nR3(config)# ip access-list extended SSH\nR3(config-ext-nacl)# permit tcp 192.168.210.0 0.0.0.255 any eq 22\nR3(config-ext-nacl)# exit\nR3(config)# class-map match-any SSH\nR3(config-cmap)# match access-group name SSH\nR3(config-cmap)# exit\nR3(config)# policy-map COPP\nR3(config-pmap)# class SSH\nR3(config-pmap-c)# police 10000 conform-action transmit exceed-action drop\nR3(config-pmap-c)# control-plane\nR3(config-cp)# service-policy input COPP\nR3(config-cp)# end\nR3# write",
+  "explanation": "Item 17/20 ailesinin EIGRP+SSH varyantı: R2'deki ACL 151'e '5 permit eigrp any any' eklenir (EIGRP=IP protokol 88, deny'den önce). R3'te CoPP zinciri 192.168.210.0/24 kaynaklı SSH (TCP 22) trafiğini 10000 bps ile sınırlar, fazlasını atar; control-plane'e 'service-policy input COPP' ile uygulanır.",
+  "review": false
+}

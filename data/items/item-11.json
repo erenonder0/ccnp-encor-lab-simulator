@@ -1,0 +1,89 @@
+{
+  "id": 11,
+  "source_pages": [22, 23],
+  "title": "EtherChannel: LACP Trunk Onarımı (Po10) + STP Root (VLAN 10/20)",
+  "topics": ["etherchannel", "stp"],
+  "difficulty": "medium",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "Complete the tasks below by making changes to Sw10 only. No access is provided to Sw20 or Sw30.",
+    "Task 1: Sw20 is actively attempting to negotiate an 802.1Q trunking EtherChannel with Sw10 using LACP, but the channel is not functional. Resolve the issues on Sw10.",
+    "Task 2: Modify the spanning tree configuration to ensure that Sw10 is always the root for VLAN 10 and VLAN 20."
+  ],
+  "topology_image": "/assets/items/item-11/topology.png",
+  "device_table": [
+    { "device": "Sw10", "interface": "e0/0, e0/1, e0/2 (to Sw20)", "ip": "Po10 uyesi olmali" },
+    { "device": "Sw20", "interface": "e0/0, e0/1, e1/0 (to Sw10)", "ip": "LACP active, Po10" },
+    { "device": "Sw10", "interface": "e0/3, e1/1 (to Sw30)", "ip": "-" }
+  ],
+  "devices": [
+    {
+      "name": "Sw10",
+      "type": "ios-switch",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1", "Ethernet0/2", "Ethernet0/3", "Ethernet1/1", "Port-channel11"],
+      "preconfig": [
+        "hostname Sw10",
+        "vlan 10",
+        "vlan 20",
+        "interface Port-channel11",
+        "interface Ethernet0/0",
+        " channel-group 11 mode on",
+        "interface Ethernet0/1",
+        " channel-group 11 mode on",
+        "interface Ethernet0/2",
+        " channel-group 11 mode on"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "Sw10",
+        "points": 6,
+        "required": [
+          { "path": ["interface Ethernet0/0"], "line": "channel-group 10 mode active" },
+          { "path": ["interface Ethernet0/1"], "line": "channel-group 10 mode active" },
+          { "path": ["interface Ethernet0/2"], "line": "channel-group 10 mode active" },
+          { "path": ["interface Port-channel10"], "line": "switchport trunk encapsulation dot1q" },
+          { "path": ["interface Port-channel10"], "line": "switchport mode trunk" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "Sw10",
+        "points": 4,
+        "required_any_of": [
+          [{ "path": [], "line": "spanning-tree vlan 10,20 priority 0" }],
+          [
+            { "path": [], "line": "spanning-tree vlan 10 priority 0" },
+            { "path": [], "line": "spanning-tree vlan 20 priority 0" }
+          ]
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!Sw10$)" },
+      { "device": "*", "regex": "^enable (secret|password)" },
+      { "device": "Sw10", "regex": "^interface Port-channel11$" },
+      { "device": "Sw10", "regex": "^channel-group 11 " }
+    ]
+  },
+  "hints": [
+    "Karsi taraf LACP 'active' + Po10 kullaniyor: uyeler 'channel-group 10 mode active' olmali (mode on LACP degildir!).",
+    "Yanlis Port-channel11'i 'no interface Port-channel11' ile kaldir.",
+    "'Her zaman root' = priority 0 ('root primary' 24576 verir, garanti etmez)."
+  ],
+  "answer_key_raw": "Sw10:\nSw10> enable\nSw10# configure terminal\nSw10(config)# no interface Port-channel11\nSw10(config)# interface range Ethernet0/0-2\nSw10(config-if-range)# switchport trunk encapsulation dot1q\nSw10(config-if-range)# switchport mode trunk\nSw10(config-if-range)# channel-group 10 mode active\nSw10(config-if-range)# no shutdown\nSw10(config-if-range)# exit\nSw10(config)# interface Port-channel10\nSw10(config-if)# switchport trunk encapsulation dot1q\nSw10(config-if)# switchport mode trunk\nSw10(config-if)# no shutdown\nSw10(config-if)# exit\nSw10(config)# spanning-tree vlan 10,20 priority 0\nSw10(config)# end\nSw10# write",
+  "explanation": "Sw20 LACP 'active' ile Po10 kurmaya calisiyor; Sw10'da yanlis numarali (Po11) ve 'mode on' (LACP olmayan) kanal vardi. Cozum: Po11 silinir, uyeler dot1q trunk yapilip 'channel-group 10 mode active' ile LACP'e alinir, Po10 arayuzu de trunk yapilir. 'Her zaman root' garantisi icin VLAN 10 ve 20'de priority 0 verilir.",
+  "review": false
+}

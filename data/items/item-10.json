@@ -1,0 +1,97 @@
+{
+  "id": 10,
+  "source_pages": [20, 21],
+  "title": "VRF + GRE: Finance VRF'i Tunnel 10 ile R22 Tarafında Tamamla, VRF Static Routing",
+  "topics": ["vrf", "gre", "static-routing"],
+  "difficulty": "hard",
+  "guidelines": [
+    "Refer to the Tasks tab to view the tasks for this lab item.",
+    "Refer to the Topology tab to access the device console(s) and perform the tasks.",
+    "Console access is available for all required devices.",
+    "All necessary preconfigurations have been applied.",
+    "Do not change the enable password or hostname for any device.",
+    "Save your configurations to NVRAM before moving to the next item."
+  ],
+  "tasks": [
+    "A colleague started configuring a new network. All configurations on R11 are complete and communication between R11 and R22 is functional. Complete the configurations on R22 for the tasks below.",
+    "Task 1: Extend the Finance VRF between R11 and R22 using Tunnel 10.",
+    "Task 2: Complete the Finance VRF configuration on R22 and configure static routing so that traffic between VLAN 111 and VLAN 222 uses Tunnel 10 exclusively.",
+    "Note: Sw22 can be used to validate traffic flow."
+  ],
+  "topology_image": "/assets/items/item-10/topology.png",
+  "device_table": [
+    { "device": "R11", "interface": "e0/0 (to ISP)", "ip": "209.165.200.230" },
+    { "device": "R22", "interface": "e0/0 (to ISP)", "ip": "209.165.201.6" },
+    { "device": "R22", "interface": "e0/1 (to Sw22)", "ip": "10.22.22.1 /30" },
+    { "device": "R22", "interface": "Tunnel10", "ip": "10.10.10.2 /30" },
+    { "device": "Sw11", "interface": "VLAN 111 (VRF Finance)", "ip": "10.10.111.1/24" },
+    { "device": "Sw22", "interface": "VLAN 222 (VRF Finance)", "ip": "10.10.222.1/24" }
+  ],
+  "devices": [
+    {
+      "name": "R22",
+      "type": "ios-router",
+      "enable_password": "cisco",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1"],
+      "preconfig": [
+        "hostname R22",
+        "vrf definition Finance",
+        " address-family ipv4",
+        "interface Ethernet0/0",
+        " ip address 209.165.201.6 255.255.255.252"
+      ]
+    },
+    {
+      "name": "Sw22",
+      "type": "ios-switch",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname Sw22",
+        "vrf definition Finance",
+        " address-family ipv4",
+        "interface Vlan222",
+        " vrf forwarding Finance",
+        " ip address 10.10.222.1 255.255.255.0"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R22",
+        "points": 5,
+        "required": [
+          { "path": ["interface Tunnel10"], "line": "vrf forwarding Finance" },
+          { "path": ["interface Tunnel10"], "line": "ip address 10.10.10.2 255.255.255.252" },
+          { "path": ["interface Tunnel10"], "line": "tunnel source Ethernet0/0" },
+          { "path": ["interface Tunnel10"], "line": "tunnel destination 209.165.200.230" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R22",
+        "points": 5,
+        "required": [
+          { "path": ["interface Ethernet0/1"], "line": "vrf forwarding Finance" },
+          { "path": ["interface Ethernet0/1"], "line": "ip address 10.22.22.1 255.255.255.252" },
+          { "path": [], "line": "ip route vrf Finance 10.10.111.0 255.255.255.0 10.10.10.1" },
+          { "path": [], "line": "ip route vrf Finance 10.10.222.0 255.255.255.0 10.22.22.2" }
+        ]
+      }
+    ],
+    "forbidden": [
+      { "device": "*", "regex": "^hostname (?!R22$|Sw22$)" },
+      { "device": "*", "regex": "^enable (secret|password)" }
+    ]
+  },
+  "hints": [
+    "Bu item'da tunel agi 10.10.10.0/30 (Item 9'daki 10.10.100.0/30 ile karistirma) — R22 ucu .2.",
+    "Tunnel destination R11'in ISP yuzudur: 209.165.200.230.",
+    "VLAN 111'e giden trafik icin next-hop tunelin karsi ucu (10.10.10.1); VLAN 222 icin Sw22 (10.22.22.2)."
+  ],
+  "answer_key_raw": "R22:\nR22> enable\nR22# configure terminal\nR22(config)# interface Ethernet0/1\nR22(config-if)# ip vrf forwarding Finance\nR22(config-if)# ip address 10.22.22.1 255.255.255.252\nR22(config-if)# no shutdown\nR22(config-if)# exit\nR22(config)# interface Tunnel10\nR22(config-if)# ip vrf forwarding Finance\nR22(config-if)# ip address 10.10.10.2 255.255.255.252\nR22(config-if)# tunnel source Ethernet0/0\nR22(config-if)# tunnel destination 209.165.200.230\nR22(config-if)# no shutdown\nR22(config-if)# exit\nR22(config)# ip route vrf Finance 10.10.111.0 255.255.255.0 10.10.10.1\nR22(config)# ip route vrf Finance 10.10.222.0 255.255.255.0 10.22.22.2\nR22(config)# end\nR22# write",
+  "explanation": "Item 9'un aynasi, R22 tarafi: Tunnel10 VRF Finance'e alinir, 10.10.10.2/30 verilir; kaynak e0/0, hedef R11'in ISP adresi 209.165.200.230. e0/1 VRF'e alinip 10.22.22.1/30 verilir. Statik rotalar: uzak VLAN111 agi tunel karsi ucundan (10.10.10.1), yerel VLAN222 agi Sw22'den (10.22.22.2).",
+  "review": false
+}

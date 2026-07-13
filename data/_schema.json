@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CCNP ENCOR Lab Item",
+  "type": "object",
+  "required": [
+    "id",
+    "source_pages",
+    "title",
+    "topics",
+    "difficulty",
+    "guidelines",
+    "tasks",
+    "devices",
+    "grading",
+    "answer_key_raw",
+    "review"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "integer", "minimum": 1, "maximum": 40 },
+    "source_pages": { "type": "array", "items": { "type": "integer" }, "minItems": 1 },
+    "title": { "type": "string" },
+    "topics": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "difficulty": { "enum": ["easy", "medium", "hard"] },
+    "guidelines": { "type": "array", "items": { "type": "string" } },
+    "tasks": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "topology_image": { "type": "string" },
+    "device_table": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["device", "interface", "ip"],
+        "additionalProperties": false,
+        "properties": {
+          "device": { "type": "string" },
+          "interface": { "type": "string" },
+          "ip": { "type": "string" }
+        }
+      }
+    },
+    "devices": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "enum": ["ios-router", "ios-switch", "pc"] },
+          "enable_password": { "type": "string" },
+          "interfaces": { "type": "array", "items": { "type": "string" } },
+          "preconfig": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "grading": {
+      "type": "object",
+      "required": ["checks"],
+      "additionalProperties": false,
+      "properties": {
+        "require_save": { "type": "boolean" },
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["task", "device", "points"],
+            "additionalProperties": false,
+            "properties": {
+              "task": { "type": "integer", "minimum": 1 },
+              "device": { "type": "string" },
+              "points": { "type": "number", "minimum": 0 },
+              "required": { "$ref": "#/definitions/lineList" },
+              "required_any_of": {
+                "type": "array",
+                "items": { "$ref": "#/definitions/lineList" },
+                "minItems": 1
+              },
+              "path_alias": { "type": "string" }
+            }
+          }
+        },
+        "forbidden": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["device", "regex"],
+            "additionalProperties": false,
+            "properties": {
+              "device": { "type": "string" },
+              "regex": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "hints": { "type": "array", "items": { "type": "string" } },
+    "answer_key_raw": { "type": "string" },
+    "explanation": { "type": "string" },
+    "review": { "type": "boolean" },
+    "review_notes": { "type": "string" }
+  },
+  "definitions": {
+    "lineList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "line"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "array", "items": { "type": "string" } },
+          "line": { "type": "string" }
+        }
+      }
+    }
+  }
+}
