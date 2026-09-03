@@ -1,3 +1,32 @@
+export interface CategorySummary {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface MatchPair {
+  prompt: string;
+  answer: string;
+}
+
+export interface CategoryQuestion {
+  n: number;
+  q: string;
+  type?: 'test' | 'match' | 'lab';
+  o?: Record<string, string>;
+  a?: string[];
+  e?: string;
+  r?: string;
+  img?: string;
+  exhibit?: string;
+  options?: string[];
+  pairs?: MatchPair[];
+  devices?: string[];
+  tasks?: string[];
+  topology?: string;
+  table?: unknown;
+}
+
 export interface ItemSummary {
   id: number;
   title: string;
@@ -61,6 +90,8 @@ async function j<T>(res: Response): Promise<T> {
 }
 
 export const api = {
+  categories: () => fetch('/api/categories').then((r) => j<CategorySummary[]>(r)),
+  categoryQuestions: (key: string) => fetch(`/api/categories/${key}`).then((r) => j<CategoryQuestion[]>(r)),
   items: () => fetch('/api/items').then((r) => j<ItemSummary[]>(r)),
   item: (id: number) => fetch(`/api/items/${id}`).then((r) => j<PublicItem>(r)),
   start: (itemId: number) =>

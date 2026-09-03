@@ -18,6 +18,26 @@ const app = express();
 app.use(express.json());
 
 const ITEMS_DIR = path.resolve('data/items');
+const QUESTIONS_DIR = path.resolve('data/questions');
+
+const CATEGORIES: Array<{ key: string; label: string }> = [
+  { key: 'architecture', label: 'Architecture' },
+  { key: 'virtualization', label: 'Virtualization' },
+  { key: 'infrastructure', label: 'Infrastructure' },
+  { key: 'network-assurance', label: 'Network Assurance' },
+  { key: 'security', label: 'Security' },
+  { key: 'automation', label: 'Automation' },
+];
+
+function loadCategoryQuestions(key: string): unknown[] {
+  const file = path.join(QUESTIONS_DIR, `${key}.jsonl`);
+  if (!existsSync(file)) return [];
+  return readFileSync(file, 'utf-8')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => JSON.parse(l));
+}
 
 function loadItems(): Item[] {
   if (!existsSync(ITEMS_DIR)) return [];
@@ -30,6 +50,16 @@ function loadItems(): Item[] {
 function findItem(id: number): Item | undefined {
   return loadItems().find((it) => it.id === id);
 }
+
+app.get('/api/categories', (_req, res) => {
+  res.json(CATEGORIES.map((c) => ({ ...c, count: loadCategoryQuestions(c.key).length })).filter((c) => c.count > 0));
+});
+
+app.get('/api/categories/:key', (req, res) => {
+  const key = req.params.key;
+  if (!CATEGORIES.some((c) => c.key === key)) return res.status(404).json({ error: 'category not found' });
+  res.json(loadCategoryQuestions(key));
+});
 
 app.get('/api/items', (_req, res) => {
   const progress = loadProgress();
