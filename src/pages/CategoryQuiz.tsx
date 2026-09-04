@@ -187,7 +187,7 @@ export default function CategoryQuiz({ categoryKey, categoryLabel, onExit }: Pro
   const isLab = q.type === 'lab';
 
   return (
-    <div className={`mx-auto flex h-screen flex-col ${isLab ? 'max-w-none' : 'max-w-4xl'}`}>
+    <div className="flex h-screen w-full flex-col">
       <header className="flex flex-wrap items-center gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-3">
         <button onClick={onExit} className="text-sm text-zinc-400 hover:text-zinc-100">
           ← Kategoriler
@@ -262,7 +262,13 @@ export default function CategoryQuiz({ categoryKey, categoryLabel, onExit }: Pro
         </div>
       )}
 
-      <div className={`min-h-0 flex-1 ${isLab ? 'flex flex-col p-3' : 'overflow-y-auto p-6'}`}>
+      <div
+        className={
+          isLab
+            ? 'flex min-h-0 flex-1 flex-col p-3'
+            : 'mx-auto min-h-0 w-full max-w-4xl flex-1 overflow-y-auto px-6 py-8'
+        }
+      >
         <QuestionView
           key={index}
           question={q}
