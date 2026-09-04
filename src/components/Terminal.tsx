@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
@@ -13,12 +13,37 @@ interface Props {
   resetTick: number;
 }
 
+export interface DeviceTerminalHandle {
+  /** Satirlari renkli (varsayilan kirmizi), mevcut prompt/buffer'i bozmadan terminale yazar */
+  injectLines: (lines: string[], color?: 'red' | 'green') => void;
+}
+
 /** Tek cihaz icin xterm konsolu. Satir duzenleme + gecmis + '?' yardimi. */
-export default function DeviceTerminal({ sessionId, device, initialPrompt, visible, resetTick }: Props) {
+const DeviceTerminal = forwardRef<DeviceTerminalHandle, Props>(function DeviceTerminal(
+  { sessionId, device, initialPrompt, visible, resetTick },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<XTerm | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const state = useRef({ buffer: '', prompt: initialPrompt, history: [] as string[], histIdx: -1, busy: false });
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      injectLines: (lines: string[], color: 'red' | 'green' = 'red') => {
+        const term = termRef.current;
+        if (!term || lines.length === 0) return;
+        const st = state.current;
+        const CODE = color === 'green' ? '\x1b[32m' : '\x1b[31m';
+        const RESET = '\x1b[0m';
+        term.write('\r\n');
+        for (const l of lines) term.write(`${CODE}${l}${RESET}\r\n`);
+        term.write(st.prompt + st.buffer);
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     const term = new XTerm({
@@ -147,5 +172,13 @@ export default function DeviceTerminal({ sessionId, device, initialPrompt, visib
     }
   }, [visible]);
 
-  return <div ref={containerRef} className={visible ? 'h-full w-full' : 'hidden'} />;
-}
+  return (
+    <div
+      ref={containerRef}
+      className={`absolute inset-0 h-full w-full ${visible ? 'z-10 opacity-100' : 'pointer-events-none z-0 opacity-0'}`}
+      aria-hidden={!visible}
+    />
+  );
+});
+
+export default DeviceTerminal;

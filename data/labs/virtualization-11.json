@@ -1,0 +1,188 @@
+{
+  "id": "virtualization-11",
+  "title": "CORP VRF'i Tunnel0 üzerinden R10-R20 arasında genişlet",
+  "topics": ["vrf-lite", "gre-tunnel", "ipsec", "static-route"],
+  "difficulty": "hard",
+  "review": false,
+  "guidelines": [
+    "Görevler sekmesinde bu lab için yapılması gerekenleri inceleyin.",
+    "Cihaz konsollarına terminal sekmelerinden erişebilirsiniz.",
+    "Gerekli ön yapılandırmalar (VRF'ler, IPsec profili, LAN arayüzleri) zaten uygulanmıştır.",
+    "R10 ve R20 dışındaki cihazlarda (ISP, Sw10, Sw20) değişiklik yapmanız gerekmez.",
+    "Yapılandırmayı NVRAM'e kaydetmeyi unutmayın (write / copy run start)."
+  ],
+  "tasks": [
+    "Extend the CORP VRF between R10 and R20 using Tunnel0.",
+    "Protect Tunnel0 using the preconfigured profile.",
+    "Configure static routing on R10 and R20 so that users in VLANs 100 and 101 that belong to the CORP VRF are able to communicate with each other. Tunnel0 should be the only interface used to route traffic for the CORP VRF."
+  ],
+  "devices": [
+    {
+      "name": "R10",
+      "type": "ios-router",
+      "interfaces": ["Ethernet0/0", "Ethernet0/1"],
+      "preconfig": [
+        "hostname R10",
+        "vrf definition TECH",
+        " address-family ipv4",
+        "vrf definition CORP",
+        " rd 65000:100",
+        " route-target export 65000:100",
+        " route-target import 65000:100",
+        " address-family ipv4",
+        "crypto isakmp policy 10",
+        " encryption aes",
+        " authentication pre-share",
+        " group 2",
+        "crypto isakmp key CISCO123 address 10.10.2.20",
+        "crypto ipsec transform-set CORP-TSET esp-aes esp-sha-hmac",
+        "crypto ipsec profile CORP-PROFILE",
+        " set transform-set CORP-TSET",
+        "interface Ethernet0/0",
+        " vrf forwarding CORP",
+        " ip address 10.100.1.1 255.255.255.0",
+        " no shutdown",
+        "interface Ethernet0/1",
+        " vrf forwarding TECH",
+        " ip address 10.10.1.10 255.255.255.0",
+        " no shutdown",
+        "ip route vrf TECH 10.10.2.0 255.255.255.0 10.10.1.1"
+      ]
+    },
+    {
+      "name": "R20",
+      "type": "ios-router",
+      "interfaces": ["Ethernet0/0", "Ethernet0/2"],
+      "preconfig": [
+        "hostname R20",
+        "vrf definition TECH",
+        " address-family ipv4",
+        "vrf definition CORP",
+        " rd 65000:100",
+        " route-target export 65000:100",
+        " route-target import 65000:100",
+        " address-family ipv4",
+        "crypto isakmp policy 10",
+        " encryption aes",
+        " authentication pre-share",
+        " group 2",
+        "crypto isakmp key CISCO123 address 10.10.1.10",
+        "crypto ipsec transform-set CORP-TSET esp-aes esp-sha-hmac",
+        "crypto ipsec profile CORP-PROFILE",
+        " set transform-set CORP-TSET",
+        "interface Ethernet0/0",
+        " vrf forwarding CORP",
+        " ip address 10.101.2.1 255.255.255.0",
+        " no shutdown",
+        "interface Ethernet0/2",
+        " vrf forwarding TECH",
+        " ip address 10.10.2.20 255.255.255.0",
+        " no shutdown",
+        "ip route vrf TECH 10.10.1.0 255.255.255.0 10.10.2.1"
+      ]
+    },
+    {
+      "name": "ISP",
+      "type": "ios-router",
+      "interfaces": ["Ethernet0/1", "Ethernet0/2"],
+      "preconfig": [
+        "hostname ISP",
+        "interface Ethernet0/1",
+        " ip address 10.10.1.1 255.255.255.0",
+        " no shutdown",
+        "interface Ethernet0/2",
+        " ip address 10.10.2.1 255.255.255.0",
+        " no shutdown"
+      ]
+    },
+    {
+      "name": "Sw10",
+      "type": "ios-switch",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname Sw10",
+        "vlan 100",
+        " name CORP",
+        "interface Ethernet0/0",
+        " switchport mode access",
+        " switchport access vlan 100"
+      ]
+    },
+    {
+      "name": "Sw20",
+      "type": "ios-switch",
+      "interfaces": ["Ethernet0/0"],
+      "preconfig": [
+        "hostname Sw20",
+        "vlan 101",
+        " name CORP",
+        "interface Ethernet0/0",
+        " switchport mode access",
+        " switchport access vlan 101"
+      ]
+    }
+  ],
+  "grading": {
+    "require_save": true,
+    "checks": [
+      {
+        "task": 1,
+        "device": "R10",
+        "points": 4,
+        "required": [
+          { "path": ["interface Tunnel0"], "line": "vrf forwarding CORP" },
+          { "path": ["interface Tunnel0"], "line": "ip address 10.100.100.1 255.255.255.0" },
+          { "path": ["interface Tunnel0"], "line": "tunnel source Ethernet0/1" },
+          { "path": ["interface Tunnel0"], "line": "tunnel destination 10.10.2.20" },
+          { "path": ["interface Tunnel0"], "line": "tunnel vrf TECH" }
+        ]
+      },
+      {
+        "task": 1,
+        "device": "R20",
+        "points": 4,
+        "required": [
+          { "path": ["interface Tunnel0"], "line": "vrf forwarding CORP" },
+          { "path": ["interface Tunnel0"], "line": "ip address 10.100.100.2 255.255.255.0" },
+          { "path": ["interface Tunnel0"], "line": "tunnel source Ethernet0/2" },
+          { "path": ["interface Tunnel0"], "line": "tunnel destination 10.10.1.10" },
+          { "path": ["interface Tunnel0"], "line": "tunnel vrf TECH" }
+        ]
+      },
+      {
+        "task": 2,
+        "device": "R10",
+        "points": 2,
+        "required": [{ "path": ["interface Tunnel0"], "line": "tunnel protection ipsec profile CORP-PROFILE" }]
+      },
+      {
+        "task": 2,
+        "device": "R20",
+        "points": 2,
+        "required": [{ "path": ["interface Tunnel0"], "line": "tunnel protection ipsec profile CORP-PROFILE" }]
+      },
+      {
+        "task": 3,
+        "device": "R10",
+        "points": 2,
+        "required": [{ "path": [], "line": "ip route vrf CORP 10.101.2.0 255.255.255.0 Tunnel0" }]
+      },
+      {
+        "task": 3,
+        "device": "R20",
+        "points": 2,
+        "required": [{ "path": [], "line": "ip route vrf CORP 10.100.1.0 255.255.255.0 Tunnel0" }]
+      }
+    ],
+    "forbidden": [{ "device": "*", "regex": "^hostname (?!R10$|R20$|ISP$|Sw10$|Sw20$)" }]
+  },
+  "hints": [
+    "R10'da 'show ip interface brief' ile Ethernet0/1 IP'sini doğrula (10.10.1.10); R20'de Ethernet0/2 (10.10.2.20) — bunlar Tunnel0'ın source/destination değerleridir.",
+    "IPsec profili önceden yapılandırılmıştır: CORP-PROFILE. 'show run | section crypto ipsec profile' ile doğrulayabilirsiniz.",
+    "WAN arayüzleri (E0/1 R10, E0/2 R20) zaten TECH adlı bir front-door VRF içindedir. Tunnel0'ın kaynak/hedef adreslerini bu VRF üzerinden çözebilmesi için arayüz altına 'tunnel vrf TECH' eklemeniz gerekir — aksi halde tünel açılmaz.",
+    "Tunnel0'ı CORP VRF'e almak için 'vrf forwarding CORP' (veya 'ip vrf forwarding CORP') komutunu IP adresinden önce girin.",
+    "CORP VRF için statik rotalar VRF adıyla birlikte yazılır: 'ip route vrf CORP <hedef-ağ> <maske> Tunnel0'."
+  ],
+  "answer_key_raw": "R10:\nR10> enable\nR10# configure terminal\nR10(config)# interface Tunnel0\nR10(config-if)# vrf forwarding CORP\nR10(config-if)# ip address 10.100.100.1 255.255.255.0\nR10(config-if)# tunnel source Ethernet0/1\nR10(config-if)# tunnel destination 10.10.2.20\nR10(config-if)# tunnel vrf TECH\nR10(config-if)# tunnel protection ipsec profile CORP-PROFILE\nR10(config-if)# exit\nR10(config)# ip route vrf CORP 10.101.2.0 255.255.255.0 Tunnel0\nR10(config)# end\nR10# write\n\nR20:\nR20> enable\nR20# configure terminal\nR20(config)# interface Tunnel0\nR20(config-if)# vrf forwarding CORP\nR20(config-if)# ip address 10.100.100.2 255.255.255.0\nR20(config-if)# tunnel source Ethernet0/2\nR20(config-if)# tunnel destination 10.10.1.10\nR20(config-if)# tunnel vrf TECH\nR20(config-if)# tunnel protection ipsec profile CORP-PROFILE\nR20(config-if)# exit\nR20(config)# ip route vrf CORP 10.100.1.0 255.255.255.0 Tunnel0\nR20(config)# end\nR20# write",
+  "explanation": "R10 e0/1 ve R20 e0/2 IP'leri 'show ip interface brief' ile bulunur (10.10.1.10 ve 10.10.2.20) — bu WAN arayüzleri önceden 'TECH' adlı bir front-door VRF içine alınmıştır. Tunnel0 oluşturulup CORP VRF'e alınır, tunnel source/destination WAN IP'leri kullanılır ve tünelin doğru (front-door) VRF'i çözebilmesi için 'tunnel vrf TECH' eklenir — bu adım atlanırsa tünel kaynağını/hedefini global tabloda arar ve asla up olmaz. Ardından önceden hazırlanmış IPsec profili tünele uygulanır. Son olarak her router, karşı taraftaki CORP alt ağına Tunnel0 üzerinden statik rota ekler: R10 -> ip route vrf CORP 10.101.2.0 255.255.255.0 Tunnel0 ; R20 -> ip route vrf CORP 10.100.1.0 255.255.255.0 Tunnel0."
+}

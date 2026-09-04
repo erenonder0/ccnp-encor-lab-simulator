@@ -231,6 +231,9 @@ const configSpecs: Spec[] = [
   s('track <num> <rest>', (c, _cap, words) => c.addGlobal(words.join(' '))),
   s('ip routing', (c) => c.addGlobal('ip routing')),
   s('ip cef', (c) => c.addGlobal('ip cef')),
+  s('ip prefix-list <word> seq <num> (permit|deny) <rest>', (c, _cap, words) => c.addGlobal(words.join(' '))),
+  s('ip prefix-list <word> (permit|deny) <rest>', (c, _cap, words) => c.addGlobal(words.join(' '))),
+  s('udld <rest>', (c, _cap, words) => c.addGlobal(words.join(' '))),
 ];
 
 /* ------------------------------------------------------------------ */
@@ -298,6 +301,8 @@ const ifSpecs: Spec[] = [
   s('keepalive [<num?>] [<num?>]', (c, _cap, words) => c.addLine(words.join(' '))),
   s('cdp enable', (c) => c.addLine('cdp enable')),
   s('ntp broadcast <rest?>', (c, _cap, words) => c.addLine(words.join(' '))),
+  s('udld port <rest>', (c, _cap, words) => c.addLine(words.join(' '))),
+  s('udld port', (c) => c.addLine('udld port')),
 ];
 
 /* ------------------------------------------------------------------ */

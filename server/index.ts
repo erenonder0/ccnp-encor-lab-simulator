@@ -19,6 +19,7 @@ app.use(express.json());
 
 const ITEMS_DIR = path.resolve('data/items');
 const QUESTIONS_DIR = path.resolve('data/questions');
+const LABS_DIR = path.resolve('data/labs');
 
 const CATEGORIES: Array<{ key: string; label: string }> = [
   { key: 'architecture', label: 'Architecture' },
@@ -44,11 +45,32 @@ function loadItems(): Item[] {
   return readdirSync(ITEMS_DIR)
     .filter((f) => /^item-\d+\.json$/.test(f))
     .map((f) => JSON.parse(readFileSync(path.join(ITEMS_DIR, f), 'utf-8')) as Item)
-    .sort((a, b) => a.id - b.id);
+    .sort((a, b) => Number(a.id) - Number(b.id));
 }
 
 function findItem(id: number): Item | undefined {
   return loadItems().find((it) => it.id === id);
+}
+
+function labFile(category: string, n: string | number): string {
+  return path.join(LABS_DIR, `${category}-${n}.json`);
+}
+
+function loadLabItem(category: string, n: string | number): Item | undefined {
+  const file = labFile(category, n);
+  if (!existsSync(file)) return undefined;
+  return JSON.parse(readFileSync(file, 'utf-8')) as Item;
+}
+
+/** hem eski sayisal id'li item'lari hem yeni "kategori-n" lab item'larini bulur */
+function findAnyItem(id: number | string): Item | undefined {
+  if (typeof id === 'string' && id.includes('-')) {
+    const dash = id.lastIndexOf('-');
+    const category = id.slice(0, dash);
+    const n = id.slice(dash + 1);
+    return loadLabItem(category, n);
+  }
+  return findItem(Number(id));
 }
 
 app.get('/api/categories', (_req, res) => {
@@ -81,6 +103,20 @@ app.get('/api/items/:id', (req, res) => {
   // Cevap anahtari ve puanlama istemciye sizmasin; grade sonrasi ayri endpoint'ten verilir.
   const { answer_key_raw, explanation, grading, ...publicItem } = item;
   res.json(publicItem);
+});
+
+app.get('/api/labs/:category/:n', (req, res) => {
+  const item = loadLabItem(req.params.category, req.params.n);
+  if (!item) return res.status(404).json({ error: 'lab not found' });
+  const { answer_key_raw, explanation, grading, ...publicItem } = item;
+  res.json(publicItem);
+});
+
+app.post('/api/labs/:category/:n/start', (req, res) => {
+  const item = loadLabItem(req.params.category, req.params.n);
+  if (!item) return res.status(404).json({ error: 'lab not found' });
+  const s = createSession(item);
+  res.json({ sessionId: s.id, itemId: item.id, devices: devicePrompts(s) });
 });
 
 app.get('/api/progress', (_req, res) => res.json(loadProgress()));
@@ -124,7 +160,7 @@ app.post('/api/session/:sessionId/complete', (req, res) => {
 app.post('/api/session/:sessionId/grade', (req, res) => {
   const s = getSession(req.params.sessionId);
   if (!s) return res.status(404).json({ error: 'session not found' });
-  const item = findItem(s.itemId)!;
+  const item = findAnyItem(s.itemId)!;
   res.json(gradeSession(s, item));
 });
 
@@ -132,14 +168,14 @@ app.get('/api/session/:sessionId/answer', (req, res) => {
   const s = getSession(req.params.sessionId);
   if (!s) return res.status(404).json({ error: 'session not found' });
   if (!s.graded) return res.status(403).json({ error: 'Cevabi gormek icin once "Kontrol Et" (grade) calistir.' });
-  const item = findItem(s.itemId)!;
+  const item = findAnyItem(s.itemId)!;
   res.json({ answer_key_raw: item.answer_key_raw, explanation: item.explanation ?? '', hints: item.hints ?? [] });
 });
 
 app.post('/api/session/:sessionId/reset', (req, res) => {
   const s = getSession(req.params.sessionId);
   if (!s) return res.status(404).json({ error: 'session not found' });
-  const item = findItem(s.itemId)!;
+  const item = findAnyItem(s.itemId)!;
   resetSession(s, item);
   res.json({ ok: true, devices: devicePrompts(s) });
 });

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, type CategoryQuestion } from '../api';
+import SimTerminal from '../components/SimTerminal';
+import FullSimLab from '../components/FullSimLab';
 
 interface Props {
   categoryKey: string;
@@ -152,8 +154,40 @@ export default function CategoryQuiz({ categoryKey, categoryLabel, onExit }: Pro
     setPosition(0);
   };
 
+  const clearCurrentAnswer = () => {
+    setAnswers((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+    setChecked((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
+
+  const checkAll = () => {
+    if (!questions) return;
+    setChecked((prev) => {
+      const next = { ...prev };
+      questions.forEach((qq, i) => {
+        const a = answers[i];
+        const hasAnswer =
+          (a?.kind === 'test' && a.selected.length > 0) ||
+          (a?.kind === 'match' && Object.keys(a.selected).length > 0) ||
+          qq.type === 'lab';
+        if (hasAnswer) next[i] = true;
+      });
+      return next;
+    });
+  };
+
+  // lab sorulari eski simulatordeki gibi tam ekran calisir; digerleri okunakli dar kolonda
+  const isLab = q.type === 'lab';
+
   return (
-    <div className="mx-auto flex h-screen max-w-4xl flex-col">
+    <div className={`mx-auto flex h-screen flex-col ${isLab ? 'max-w-none' : 'max-w-4xl'}`}>
       <header className="flex flex-wrap items-center gap-3 border-b border-zinc-800 bg-zinc-900 px-4 py-3">
         <button onClick={onExit} className="text-sm text-zinc-400 hover:text-zinc-100">
           ← Kategoriler
@@ -183,6 +217,13 @@ export default function CategoryQuiz({ categoryKey, categoryLabel, onExit }: Pro
             title="Soru listesinden seç"
           >
             ☰ Sorular
+          </button>
+          <button
+            onClick={checkAll}
+            className="rounded bg-emerald-800 px-2.5 py-1.5 text-xs font-medium text-emerald-100 hover:bg-emerald-700"
+            title="Cevapladığın tüm soruları tek seferde kontrol et"
+          >
+            ✓ Tümünü Kontrol Et
           </button>
           <button
             onClick={resetProgress}
@@ -221,7 +262,7 @@ export default function CategoryQuiz({ categoryKey, categoryLabel, onExit }: Pro
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-6">
+      <div className={`min-h-0 flex-1 ${isLab ? 'flex flex-col p-3' : 'overflow-y-auto p-6'}`}>
         <QuestionView
           key={index}
           question={q}
@@ -255,6 +296,13 @@ export default function CategoryQuiz({ categoryKey, categoryLabel, onExit }: Pro
             Cevabı Gizle
           </button>
         )}
+        <button
+          onClick={clearCurrentAnswer}
+          className="rounded bg-zinc-800 px-3 py-1.5 text-sm text-zinc-400 hover:bg-red-900 hover:text-red-200"
+          title="Bu sorunun cevabını temizle, baştan dene"
+        >
+          ↺ Bu Soruyu Sıfırla
+        </button>
         <select
           value={index}
           onChange={(e) => gotoQuestionIndex(Number(e.target.value))}
@@ -308,6 +356,39 @@ function QuestionView({
   setAnswer: (a: UserAnswer) => void;
   checked: boolean;
 }) {
+  // lab: eski simulator gibi solda soru/gorevler, sagda tam boy konsol
+  if (question.type === 'lab') {
+    return (
+      <div className="flex min-h-0 flex-1 gap-3">
+        <aside className="w-[36%] min-w-[300px] max-w-[560px] space-y-4 overflow-y-auto pr-2">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-100">{question.q}</p>
+          {question.exhibit && (
+            <pre className="overflow-x-auto rounded border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs leading-relaxed text-zinc-300">
+              {question.exhibit}
+            </pre>
+          )}
+          {question.img && (
+            <img
+              src={`/assets/questions/${categoryKey}/${encodeURIComponent(question.img)}`}
+              alt="exhibit"
+              className="max-w-full rounded border border-zinc-800"
+            />
+          )}
+          <LabInfo question={question} />
+          {checked && question.e && (
+            <div className="rounded border border-zinc-800 bg-zinc-950 p-3 text-sm text-zinc-300">
+              <span className="font-semibold text-zinc-100">Açıklama: </span>
+              {question.e}
+            </div>
+          )}
+        </aside>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <LabConsole question={question} categoryKey={categoryKey} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <p className="whitespace-pre-wrap text-base leading-relaxed text-zinc-100">{question.q}</p>
@@ -332,18 +413,14 @@ function QuestionView({
       {question.type === 'match' && (
         <MatchBody question={question} answer={answer} setAnswer={setAnswer} checked={checked} />
       )}
-      {question.type === 'lab' && <LabBody question={question} />}
-
       {checked && (
         <div className="rounded border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">
-          {question.type !== 'lab' && (
-            <p className="mb-2">
-              <span className="font-semibold text-emerald-300">Doğru cevap: </span>
-              {question.type === 'match'
-                ? question.pairs?.map((p) => `${p.prompt} → ${p.answer}`).join(' | ')
-                : (question.a ?? []).join(', ')}
-            </p>
-          )}
+          <p className="mb-2">
+            <span className="font-semibold text-emerald-300">Doğru cevap: </span>
+            {question.type === 'match'
+              ? question.pairs?.map((p) => `${p.prompt} → ${p.answer}`).join(' | ')
+              : (question.a ?? []).join(', ')}
+          </p>
           {question.e && (
             <p className="mb-2">
               <span className="font-semibold text-zinc-100">Açıklama: </span>
@@ -444,6 +521,14 @@ function MatchBody({
 
   return (
     <div className="space-y-2">
+      {question.topology && (
+        <div className="mb-3">
+          <h3 className="mb-1 text-xs font-semibold uppercase text-zinc-500">Topoloji</h3>
+          <p className="whitespace-pre-wrap rounded border border-zinc-800 bg-zinc-950 p-3 font-mono text-xs text-zinc-300">
+            {question.topology}
+          </p>
+        </div>
+      )}
       {options.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2">
           {options.map((o, i) => (
@@ -485,7 +570,7 @@ function MatchBody({
   );
 }
 
-function LabBody({ question }: { question: CategoryQuestion }) {
+function LabInfo({ question }: { question: CategoryQuestion }) {
   return (
     <div className="space-y-3">
       {question.topology && (
@@ -512,6 +597,67 @@ function LabBody({ question }: { question: CategoryQuestion }) {
           </ol>
         </div>
       )}
+    </div>
+  );
+}
+
+function LabConsole({ question, categoryKey }: { question: CategoryQuestion; categoryKey: string }) {
+  const devices = question.devices && question.devices.length > 0 ? question.devices : ['R1'];
+  const [activeDevice, setActiveDevice] = useState(devices[0]);
+  const [resetTick, setResetTick] = useState(0);
+  const [fullSim, setFullSim] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFullSim(null);
+    api
+      .labItem(categoryKey, question.n)
+      .then(() => {
+        if (!cancelled) setFullSim(true);
+      })
+      .catch(() => {
+        if (!cancelled) setFullSim(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryKey, question.n]);
+
+  if (fullSim === null) return <div className="p-4 text-sm text-zinc-500">Konsol yükleniyor…</div>;
+  if (fullSim) return <FullSimLab category={categoryKey} n={question.n} />;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-1 flex items-center justify-between">
+        <h3 className="text-xs font-semibold uppercase text-zinc-500">Konsol (pratik — otomatik puanlama yok)</h3>
+        <button
+          onClick={() => setResetTick((x) => x + 1)}
+          className="rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-400 hover:bg-zinc-700"
+          title="Terminali sıfırla"
+        >
+          ↺ Sıfırla
+        </button>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded border border-zinc-800">
+        <div className="flex border-b border-zinc-800 bg-zinc-900">
+          {devices.map((d) => (
+            <button
+              key={d}
+              onClick={() => setActiveDevice(d)}
+              className={`px-3 py-1.5 font-mono text-xs ${
+                activeDevice === d ? 'bg-black text-emerald-300' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+        <div className="relative min-h-0 flex-1 bg-black p-1">
+          {devices.map((d) => (
+            <SimTerminal key={`${d}-${resetTick}`} device={d} visible={activeDevice === d} resetTick={resetTick} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

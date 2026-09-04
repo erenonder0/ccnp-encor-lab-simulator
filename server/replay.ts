@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { buildDevices, type Item } from './session';
 import { execute } from './ios/engine';
@@ -9,7 +9,17 @@ export function loadAllItems(): Item[] {
   return readdirSync(dir)
     .filter((f) => /^item-\d+\.json$/.test(f))
     .map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf-8')) as Item)
-    .sort((a, b) => a.id - b.id);
+    .sort((a, b) => Number(a.id) - Number(b.id));
+}
+
+/** Yeni "kategori-n" tam simulasyon lab'lari (data/labs/*.json) */
+export function loadAllLabItems(): Item[] {
+  const dir = path.resolve('data/labs');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf-8')) as Item)
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
 }
 
 export interface ReplayResult {

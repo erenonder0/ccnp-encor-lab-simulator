@@ -121,7 +121,7 @@ export default function Lab({ itemId, totalItems, onNavigate, onExit }: Props) {
               </button>
             ))}
           </div>
-          <div className="min-h-0 flex-1 p-1">
+          <div className="relative min-h-0 flex-1 p-1">
             {devices.map((d) => (
               <DeviceTerminal
                 key={`${d.name}-${resetTick}`}

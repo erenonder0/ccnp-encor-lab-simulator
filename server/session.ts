@@ -15,7 +15,7 @@ export interface ItemDevice {
 }
 
 export interface Item {
-  id: number;
+  id: number | string;
   title: string;
   topics: string[];
   difficulty: string;
@@ -34,7 +34,7 @@ export interface Item {
 
 export interface Session {
   id: string;
-  itemId: number;
+  itemId: number | string;
   devices: Map<string, DeviceState>;
   graded: boolean;
   startedAt: number;
@@ -137,14 +137,14 @@ export function loadProgress(): Progress {
   }
 }
 
-export function resetProgress(itemId: number): void {
+export function resetProgress(itemId: number | string): void {
   const p = loadProgress();
   delete p.items[itemId];
   mkdirSync(path.dirname(PROGRESS_FILE), { recursive: true });
   writeFileSync(PROGRESS_FILE, JSON.stringify(p, null, 2));
 }
 
-function saveProgress(itemId: number, report: GradeReport): void {
+function saveProgress(itemId: number | string, report: GradeReport): void {
   const p = loadProgress();
   const prev = p.items[itemId];
   p.items[itemId] = {
